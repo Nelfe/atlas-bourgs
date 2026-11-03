@@ -938,6 +938,33 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         var dirS = (!insideM(pa, 45) ? 1 : 0) - (!insideM(pb2, 45) ? 1 : 0);
         sh += dirS * 18;
       }
+      /* le port doit rester sur la même rive que le marché : on glisse le long de la côte jusqu'à un emplacement accessible sans franchir la rivière */
+      if (river) {
+        var okBank = function (pt) {
+          for (var zb = 1; zb < 24; zb++) if (riverDist(P.x + (pt.x - P.x) * zb / 24, P.y + (pt.y - P.y) * zb / 24) < rw / 2 + 3) return false;
+          return true;
+        };
+        var okSh = function (v) {
+          var ex = HL / 2 + (sizeKey === 'bourg' ? 60 : 85);
+          if (sMouth !== null && Math.abs(v - sMouth) < clr) return false;
+          var tp = [seaPt(v, -30), seaPt(v - ex, -20), seaPt(v + ex, -20), seaPt(v - ex / 2, -20), seaPt(v + ex / 2, -20)];
+          for (var tz = 0; tz < tp.length; tz++) if (!insideM(tp[tz], 45) || !okBank(tp[tz])) return false;
+          return true;
+        };
+        if (!okSh(sh)) {
+          var shBest = null;
+          for (var dsh = 18; dsh <= 700 && shBest === null; dsh += 18) {
+            if (okSh(sh + dsh)) shBest = sh + dsh; else if (okSh(sh - dsh)) shBest = sh - dsh;
+          }
+          if (shBest === null) {
+            var okRel = function (v) { var q0 = seaPt(v, -30); return okBank(q0) && insideM(q0, 30) && (sMouth === null || Math.abs(v - sMouth) > clr * 0.6); };
+            for (var dsh2 = 0; dsh2 <= 700 && shBest === null; dsh2 += 18) {
+              if (okRel(sh + dsh2)) shBest = sh + dsh2; else if (okRel(sh - dsh2)) shBest = sh - dsh2;
+            }
+          }
+          if (shBest !== null) sh = shBest;
+        }
+      }
       var side = sMouth !== null ? (sh >= sMouth ? 1 : -1) : (hr() < 0.5 ? 1 : -1);
       var inMap = function (pp) { return pp.x > 50 && pp.x < W - 50 && pp.y > 50 && pp.y < H - 50; };
       var roomOn = function (sg) { return inMap(seaPt(sh + sg * (HL / 2 + 230), -10)); };
@@ -1146,8 +1173,8 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         out.push({ x: arr[arr.length - 1].x, y: arr[arr.length - 1].y });
         return out;
       };
-      var analyze = function (pts, grid) {
-        var smp = resB(pts), crossMax = grid ? rw * 6 + 40 : rw * 3.2 + 20, runs, changed = false;
+      var analyze = function (pts, grid, mainSt) {
+        var smp = resB(pts), crossMax = grid ? rw * 6 + 40 : mainSt ? rw * 5.2 + 30 : rw * 3.2 + 20, runs, changed = false;
         function find() {
           runs = []; var cur = null;
           smp.forEach(function (sp, ix) {
@@ -1184,7 +1211,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         });
         return { smp: smp, cross: cross, cuts: cuts, changed: changed };
       };
-      var infos = streets.map(function (st) { return analyze(st.pts, layout === 'bastide'); });
+      var infos = streets.map(function (st) { return analyze(st.pts, layout === 'bastide', st.kind === 'main'); });
       var cands = [];
       infos.forEach(function (inf, si) {
         var st = streets[si];
