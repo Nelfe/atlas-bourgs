@@ -328,6 +328,8 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         </ul>
       </div>
       <div class="share">
+        <button type="button" id="btn-png" class="primary">Enregistrer la carte en image</button>
+        <button type="button" id="btn-share" hidden>Partager l’image</button>
         <button type="button" id="btn-copy">Copier le lien de cette carte</button>
         <p id="status" role="status" aria-live="polite"></p>
         <input id="linkbox" type="text" readonly hidden aria-label="Lien de la carte">
@@ -2280,6 +2282,42 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
   });
   $('seed').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') { state.seed = cleanSeed(e.target.value) || randomSeed(); render(); }
+  });
+  /* export PNG : la carte est redessinée en haute résolution (x3), sans le zoom ni les boutons */
+  function slug(t) { return (t || 'carte').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+  function pngBlob(cb) {
+    var old = dpr, SC = 3;
+    dpr = SC; canvas.width = W * SC; canvas.height = H * SC;
+    draw(model, readTokens());
+    canvas.toBlob(function (blob) {
+      cb(blob);
+    }, 'image/png');
+    dpr = old; canvas.width = W * old; canvas.height = H * old;
+    draw(model, readTokens());
+  }
+  function pngName() { return 'atlas-' + slug(model.name) + '-' + state.size + '-' + state.seed + '.png'; }
+  function say(t) { $('status').textContent = t; }
+  $('btn-png').addEventListener('click', function () {
+    if (!model) return;
+    pngBlob(function (blob) {
+      if (!blob) { say('Export impossible sur ce navigateur.'); return; }
+      var url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = pngName(); document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      say('Image enregistrée : ' + pngName());
+    });
+  });
+  try {
+    var probe = new File([new Blob(['x'])], 'x.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [probe] })) $('btn-share').hidden = false;
+  } catch (e) { }
+  $('btn-share').addEventListener('click', function () {
+    if (!model) return;
+    pngBlob(function (blob) {
+      if (!blob) { say('Export impossible sur ce navigateur.'); return; }
+      var file = new File([blob], pngName(), { type: 'image/png' });
+      navigator.share({ files: [file], title: model.name }).catch(function (e) { if (e && e.name !== 'AbortError') say('Partage impossible : ' + e.message); });
+    });
   });
   $('btn-copy').addEventListener('click', function () {
     var url = location.href, box = $('linkbox');
