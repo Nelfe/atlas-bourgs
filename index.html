@@ -1,0 +1,2314 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2E3A4A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Atlas">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+</head>
+<body>
+<title>Atlas des Bourgs</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500&family=IBM+Plex+Mono:wght@400;500&family=Pirata+One&display=swap">
+<style>
+/* Mise en page : un bandeau de commandes, la carte pleine largeur, une fiche de ville à droite (sous la carte sur téléphone). */
+:root {
+  --bg: #E8EAE5;
+  --surface: #F4F5F1;
+  --fg: #1E2630;
+  --muted: #5C6772;
+  --line: #CBD0C9;
+  --accent: #2D4B7C;
+  --accent-fg: #F4F6FA;
+
+  --font-display: "Pirata One", "UnifrakturCook", Georgia, serif;
+  --font-body: "Alegreya Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  --m-land: #DADDC6;
+  --m-landdark: #B3BA94;
+  --m-field0: #CFD6A6;
+  --m-field1: #E3D8A2;
+  --m-field2: #C9BC90;
+  --m-furrow: #7E805A;
+  --m-forest: #587A4C;
+  --m-forest2: #7A9B63;
+  --m-conifer: #3F5F43;
+  --m-water: #9DBBCB;
+  --m-shore: #5F8499;
+  --m-waterhi: #D6E6EE;
+  --m-waterink: #2E566E;
+  --m-road: #EFE9D6;
+  --m-roadedge: #A39B80;
+  --m-roof0: #B4624A;
+  --m-roof1: #8B5A4C;
+  --m-roof2: #C58E5B;
+  --m-roof3: #737A82;
+  --m-houseedge: #4B3B33;
+  --m-wall: #A39E92;
+  --m-walledge: #4A463E;
+  --m-stone: #D6D1C3;
+  --m-wood: #B08B5E;
+  --m-sand: #E6D8AE;
+  --m-light: #F1CF73;
+  --m-shadow: #2B2A26;
+  --m-ink: #2A2924;
+  --m-paper: #F2F0E4;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161C;
+    --surface: #1A2029;
+    --fg: #E4E7EA;
+    --muted: #97A1AB;
+    --line: #2C3541;
+    --accent: #8FB0E8;
+    --accent-fg: #0E141C;
+    --m-land: #1F2823;
+    --m-landdark: #31403A;
+    --m-field0: #2B3A2B;
+    --m-field1: #3B3A27;
+    --m-field2: #33302A;
+    --m-furrow: #5B6F54;
+    --m-forest: #1F3A28;
+    --m-forest2: #2D5238;
+    --m-conifer: #16291D;
+    --m-water: #1D3647;
+    --m-shore: #0F1F2A;
+    --m-waterhi: #3A5F77;
+    --m-waterink: #9EC3DB;
+    --m-road: #4D4B42;
+    --m-roadedge: #14171A;
+    --m-roof0: #A25641;
+    --m-roof1: #7A5246;
+    --m-roof2: #A97B4D;
+    --m-roof3: #5F666E;
+    --m-houseedge: #14110F;
+    --m-wall: #8F8A7E;
+    --m-walledge: #14110F;
+    --m-stone: #9B968A;
+    --m-wood: #7A5C3B;
+    --m-sand: #6A6548;
+    --m-light: #F1CF73;
+    --m-shadow: #000000;
+    --m-ink: #E6E2D3;
+    --m-paper: #1A211D;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161C;
+  --surface: #1A2029;
+  --fg: #E4E7EA;
+  --muted: #97A1AB;
+  --line: #2C3541;
+  --accent: #8FB0E8;
+  --accent-fg: #0E141C;
+  --m-land: #1F2823;
+  --m-landdark: #31403A;
+  --m-field0: #2B3A2B;
+  --m-field1: #3B3A27;
+  --m-field2: #33302A;
+  --m-furrow: #5B6F54;
+  --m-forest: #1F3A28;
+  --m-forest2: #2D5238;
+  --m-conifer: #16291D;
+  --m-water: #1D3647;
+  --m-shore: #0F1F2A;
+  --m-waterhi: #3A5F77;
+  --m-waterink: #9EC3DB;
+  --m-road: #4D4B42;
+  --m-roadedge: #14171A;
+  --m-roof0: #A25641;
+  --m-roof1: #7A5246;
+  --m-roof2: #A97B4D;
+  --m-roof3: #5F666E;
+  --m-houseedge: #14110F;
+  --m-wall: #8F8A7E;
+  --m-walledge: #14110F;
+  --m-stone: #9B968A;
+    --m-wood: #7A5C3B;
+    --m-sand: #6A6548;
+    --m-light: #F1CF73;
+  --m-shadow: #000000;
+  --m-ink: #E6E2D3;
+  --m-paper: #1A211D;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 400 17px/1.5 var(--font-body);
+  padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1240px; margin-inline: auto; display: grid; gap: 20px; }
+header { display: grid; gap: 6px; }
+h1 {
+  font: 400 clamp(38px, 6vw, 58px)/1 var(--font-display);
+  letter-spacing: 0.01em;
+  margin: 0;
+  text-wrap: balance;
+}
+.lede { margin: 0; max-width: 62ch; color: var(--muted); text-wrap: pretty; }
+
+.controls {
+  display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: end;
+  padding-block: 14px 16px;
+  border-block: 1px solid var(--line);
+}
+.field { display: grid; gap: 6px; min-width: 0; border: 0; padding: 0; margin: 0; }
+.field > legend, .field > label.cap {
+  font: 500 12px/1 var(--font-body);
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+  padding: 0; margin-bottom: 6px;
+}
+.row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.chip { position: relative; display: inline-flex; }
+.chip input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; width: 100%; height: 100%; }
+.chip span {
+  display: inline-flex; align-items: center; min-height: 38px; padding: 0 14px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+  border-radius: 4px; font-weight: 500; pointer-events: none;
+}
+.chip input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip:hover input:not(:checked) + span { border-color: var(--muted); }
+
+.seedbox { display: flex; gap: 6px; }
+#seed {
+  width: 11ch; min-height: 38px; padding: 0 10px;
+  font: 500 14px var(--font-mono); letter-spacing: 0.04em;
+  background: var(--surface); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 4px;
+}
+button {
+  min-height: 38px; padding: 0 16px; border-radius: 4px; cursor: pointer;
+  font: 500 16px var(--font-body);
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+}
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 700; }
+button:hover { border-color: var(--muted); }
+button.primary:hover { filter: brightness(1.08); }
+:is(button, input):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
+.stage { margin: 0; min-width: 0; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: var(--m-land); }
+canvas { display: block; width: 100%; height: auto; }
+
+.sheet { display: grid; gap: 18px; min-width: 0; }
+.sheet h2 { font: 400 38px/1.05 var(--font-display); margin: 0; overflow-wrap: anywhere; text-wrap: balance; }
+.sheet .year { margin: 4px 0 0; color: var(--muted); font-style: italic; }
+dl { margin: 0; display: grid; grid-template-columns: 1fr auto; border-top: 1px solid var(--line); }
+dt, dd { margin: 0; padding: 8px 0; border-bottom: 1px solid var(--line); }
+dt { color: var(--muted); }
+dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin: 0; padding: 0; list-style: none; font-size: 17px; line-height: 1.25; }
+.legend li { display: flex; align-items: center; gap: 8px; }
+.legend i { width: 20px; height: 20px; border-radius: 2px; border: 1px solid var(--line); flex: none; }
+.h3 { font: 500 12px/1 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+.share { display: grid; gap: 8px; }
+#status { margin: 0; min-height: 1.5em; color: var(--muted); font-size: 15px; }
+#linkbox { width: 100%; min-height: 38px; padding: 0 10px; font: 400 12px var(--font-mono); background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .controls { gap: 14px; }
+  .seedbox { flex-wrap: wrap; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Atlas des Bourgs</h1>
+    <p class="lede">Chaque tirage trace une nouvelle ville fortifiée : remparts, rues, maisons, champs et forêts. La graine permet de retrouver exactement la même carte.</p>
+  </header>
+
+  <div class="controls">
+    <fieldset class="field">
+      <legend>Taille</legend>
+      <div class="row">
+        <label class="chip"><input type="radio" name="size" id="size-bourg" value="bourg"><span>Bourg</span></label>
+        <label class="chip"><input type="radio" name="size" id="size-ville" value="ville" checked><span>Ville</span></label>
+        <label class="chip"><input type="radio" name="size" id="size-cite" value="cite"><span>Cité</span></label>
+      </div>
+    </fieldset>
+    <fieldset class="field">
+      <legend>Plan</legend>
+      <div class="row">
+        <label class="chip"><input type="radio" name="plan" id="plan-auto" value="auto" checked><span>Au hasard</span></label>
+        <label class="chip"><input type="radio" name="plan" id="plan-radial" value="radial"><span>Radial</span></label>
+        <label class="chip"><input type="radio" name="plan" id="plan-organic" value="organic"><span>Organique</span></label>
+        <label class="chip"><input type="radio" name="plan" id="plan-bastide" value="bastide"><span>Bastide</span></label>
+        <label class="chip"><input type="radio" name="plan" id="plan-linear" value="linear"><span>En longueur</span></label>
+      </div>
+    </fieldset>
+    <fieldset class="field">
+      <legend>Options</legend>
+      <div class="row">
+        <label class="chip"><input type="checkbox" id="opt-walls" checked><span>Remparts</span></label>
+        <label class="chip"><input type="checkbox" id="opt-river" checked><span>Rivière</span></label>
+        <label class="chip"><input type="checkbox" id="opt-coast"><span>Côte</span></label>
+      </div>
+    </fieldset>
+    <div class="field">
+      <label class="cap" for="seed">Graine</label>
+      <div class="seedbox">
+        <input id="seed" type="text" inputmode="text" maxlength="24" autocomplete="off" spellcheck="false" aria-label="Graine de la carte">
+        <button type="button" id="btn-new" class="primary">Nouvelle ville</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <figure class="stage">
+      <canvas id="map" width="1200" height="800" role="img" aria-label="Carte d'une ville médiévale"></canvas>
+    </figure>
+
+    <aside class="sheet">
+      <div>
+        <h2 id="city-name">—</h2>
+        <p class="year" id="city-year"></p>
+      </div>
+      <dl>
+        <dt>Plan</dt><dd id="st-plan">—</dd>
+        <dt>Habitants</dt><dd id="st-pop">—</dd>
+        <dt>Maisons</dt><dd id="st-houses">—</dd>
+        <dt>Tours</dt><dd id="st-towers">—</dd>
+        <dt>Portes</dt><dd id="st-gates">—</dd>
+        <dt>Ponts</dt><dd id="st-bridges">—</dd>
+        <dt>Moulins</dt><dd id="st-mills">—</dd>
+        <dt>Cimetières</dt><dd id="st-yards">—</dd>
+        <dt>Port</dt><dd id="st-port">—</dd>
+      </dl>
+      <div>
+        <p class="h3">Légende</p>
+        <ul class="legend">
+          <li><i style="background:var(--m-roof0)"></i>Toits</li>
+          <li><i style="background:var(--m-field1)"></i>Champs</li>
+          <li><i style="background:var(--m-forest)"></i>Forêt</li>
+          <li><i style="background:var(--m-wall)"></i>Rempart</li>
+          <li><i style="background:var(--m-road)"></i>Rues</li>
+          <li><i style="background:var(--m-water)"></i>Rivière, mer</li>
+          <li><i style="background:var(--m-sand)"></i>Plage</li>
+          <li><i style="background:var(--m-wood)"></i>Quai, jetée</li>
+          <li><i style="background:var(--m-stone);border-color:var(--m-walledge)"></i>Quai de pierre</li>
+          <li><i style="background:var(--m-roof2)"></i>Navire</li>
+          <li><i style="background:var(--m-roof0)"></i>Chantier naval</li>
+          <li><i style="background:var(--m-light)"></i>Phare</li>
+          <li><i style="background:var(--m-stone)"></i>Château, cathédrale</li>
+          <li><i style="background:var(--m-roof1)"></i>Manoir</li>
+          <li><i style="background:var(--m-roof2)"></i>Maison du bailli</li>
+          <li><i style="background:var(--m-landdark)"></i>Cimetière</li>
+          <li><i style="background:var(--m-wood)"></i>Pont de bois</li>
+          <li><i style="background:var(--m-stone);border-color:var(--m-walledge)"></i>Pont de pierre</li>
+          <li><i style="background:var(--m-road)"></i>Place du marché</li>
+          <li><i style="background:var(--m-roof3)"></i>Chapelle, moulin</li>
+        </ul>
+      </div>
+      <div class="share">
+        <button type="button" id="btn-copy">Copier le lien de cette carte</button>
+        <p id="status" role="status" aria-live="polite"></p>
+        <input id="linkbox" type="text" readonly hidden aria-label="Lien de la carte">
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var W = 1200, H = 800, TAU = Math.PI * 2;
+  var canvas = document.getElementById('map');
+  var ctx = canvas.getContext('2d');
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = W * dpr; canvas.height = H * dpr;
+
+  var DISPLAY = '"Pirata One", "UnifrakturCook", Georgia, serif';
+  var BODY = '"Alegreya Sans", system-ui, sans-serif';
+
+  /* ---------- aléatoire reproductible ---------- */
+  function hashSeed(str) {
+    var h = 1779033703 ^ str.length;
+    for (var i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+    return function () {
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      return (h ^= h >>> 16) >>> 0;
+    };
+  }
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function pick(r, a) { return a[Math.floor(r() * a.length)]; }
+  function shuffle(a, r) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  /* ---------- noms ---------- */
+  var SAINTS = ['Aubin', 'Hilaire', 'Maur', 'Émilion', 'Savin', 'Loup', 'Cyr', 'Gilles', 'Léger', 'Pierre', 'Médard', 'Florent'];
+  var STARTS = ['mar', 'bel', 'cor', 'ver', 'aul', 'ro', 'sau', 'chal', 'pon', 'lan', 'gui', 'tho', 'bra', 'cler', 'vil', 'bour', 'mon', 'lor', 'vend', 'aur'];
+  var MIDS = ['', '', '', 'de', 'ne', 'ra', 'li', 'vi', 'ta', 'ro'];
+  var ENDS = ['mont', 'ville', 'court', 'ac', 'ay', 'ières', 'bourg', 'val', 'mur', 'ens', 'ange', 'ey', 'ois'];
+  var PREFS = ['Pont-', 'Mont-', 'Val-', 'Roche-', 'Bourg-', 'Château-', 'Fontaine-', 'Beau-'];
+  var ROOTS = ['Aubry', 'Mercy', 'Brenne', 'Orval', 'Lucet', 'Morlay', 'Verneuil', 'Argens', 'Salers', 'Clairac'];
+  var RSTART = ['av', 'or', 'lur', 'sar', 'bren', 'cur', 'lou', 'til', 'ver', 'ay'];
+  var REND = ['ance', 'onne', 'eille', 'ure', 'ette', 'ine', 'enne'];
+  function cityName(r) {
+    var f = r();
+    if (f < 0.2) return 'Saint-' + pick(r, SAINTS);
+    if (f < 0.42) return pick(r, PREFS) + pick(r, ROOTS);
+    return cap(pick(r, STARTS) + pick(r, MIDS) + pick(r, ENDS));
+  }
+  function riverName(r) { return 'La ' + cap(pick(r, RSTART) + pick(r, REND)); }
+  function roman(n) {
+    var m = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']], s = '';
+    for (var i = 0; i < m.length; i++) { while (n >= m[i][0]) { s += m[i][1]; n -= m[i][0]; } }
+    return s;
+  }
+
+  /* ---------- géométrie ---------- */
+  function distSeg(px, py, ax, ay, bx, by) {
+    var dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+    var t = l2 ? ((px - ax) * dx + (py - ay) * dy) / l2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+  }
+  function segInter(a, b, c, d) {
+    var rx = b.x - a.x, ry = b.y - a.y, sx = d.x - c.x, sy = d.y - c.y;
+    var den = rx * sy - ry * sx;
+    if (Math.abs(den) < 1e-9) return null;
+    var t = ((c.x - a.x) * sy - (c.y - a.y) * sx) / den;
+    var u = ((c.x - a.x) * ry - (c.y - a.y) * rx) / den;
+    if (t < 0 || t > 1 || u < 0 || u > 1) return null;
+    return { x: a.x + t * rx, y: a.y + t * ry, ang: Math.atan2(ry, rx) };
+  }
+  function angDiff(a, b) { var d = Math.abs(a - b) % TAU; return d > Math.PI ? TAU - d : d; }
+  function wobblyLine(r, p0, p1, amp, steps) {
+    var pts = [], dx = p1.x - p0.x, dy = p1.y - p0.y, len = Math.hypot(dx, dy) || 1;
+    var nx = -dy / len, ny = dx / len;
+    var ph1 = r() * TAU, ph2 = r() * TAU, f1 = 1.5 + r() * 1.5, f2 = 3 + r() * 2;
+    for (var i = 0; i <= steps; i++) {
+      var t = i / steps, env = Math.sin(Math.PI * t);
+      var o = amp * env * (Math.sin(t * f1 * Math.PI + ph1) * 0.7 + Math.sin(t * f2 * Math.PI + ph2) * 0.3);
+      pts.push({ x: p0.x + dx * t + nx * o, y: p0.y + dy * t + ny * o });
+    }
+    return pts;
+  }
+  function corners(o) {
+    var c = Math.cos(o.ang), s = Math.sin(o.ang), hw = o.w / 2, hh = o.h / 2;
+    return [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(function (p) {
+      return { x: o.x + p[0] * c - p[1] * s, y: o.y + p[0] * s + p[1] * c };
+    });
+  }
+  function obbOverlap(a, b) {
+    var A = corners(a), B = corners(b), axes = [];
+    [A, B].forEach(function (P) {
+      for (var i = 0; i < 2; i++) { var p = P[i], q = P[i + 1]; axes.push({ x: -(q.y - p.y), y: q.x - p.x }); }
+    });
+    for (var k = 0; k < axes.length; k++) {
+      var ax = axes[k], minA = 1e9, maxA = -1e9, minB = 1e9, maxB = -1e9, i, d;
+      for (i = 0; i < 4; i++) { d = A[i].x * ax.x + A[i].y * ax.y; if (d < minA) minA = d; if (d > maxA) maxA = d; }
+      for (i = 0; i < 4; i++) { d = B[i].x * ax.x + B[i].y * ax.y; if (d < minB) minB = d; if (d > maxB) maxB = d; }
+      if (maxA < minB || maxB < minA) return false;
+    }
+    return true;
+  }
+  function inObb(o, x, y, m) {
+    var c = Math.cos(-o.ang), s = Math.sin(-o.ang), dx = x - o.x, dy = y - o.y;
+    var lx = dx * c - dy * s, ly = dx * s + dy * c;
+    return Math.abs(lx) <= o.w / 2 + m && Math.abs(ly) <= o.h / 2 + m;
+  }
+  function nearestSeg(segs, x, y) {
+    var best = 1e9, bs = null;
+    for (var i = 0; i < segs.length; i++) {
+      var s = segs[i], d = distSeg(x, y, s.ax, s.ay, s.bx, s.by);
+      if (d < best) { best = d; bs = s; }
+    }
+    return { d: best, seg: bs };
+  }
+
+  /* ---------- paramètres par taille ---------- */
+  var SIZES = {
+    bourg: { R: 128, gMin: 2, gMax: 4, rings: [0.55], minors: 7, castle: 34, cath: 34, mills: 1, N: [18, 22] },
+    ville: { R: 188, gMin: 3, gMax: 5, rings: [0.36, 0.7], minors: 11, castle: 44, cath: 46, mills: 2, N: [22, 28] },
+    cite: { R: 250, gMin: 4, gMax: 6, rings: [0.28, 0.52, 0.78], minors: 17, castle: 54, cath: 58, mills: 3, N: [26, 34] }
+  };
+  var LAYOUT_NAMES = { radial: 'Radioconcentrique', organic: 'Organique', bastide: 'Bastide', linear: 'Ville-rue' };
+
+  function projPt(px, py, ax, ay, bx, by) {
+    var dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+    var t = l2 ? ((px - ax) * dx + (py - ay) * dy) / l2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    var x = ax + t * dx, y = ay + t * dy;
+    return { x: x, y: y, d: Math.hypot(px - x, py - y), sx: dx, sy: dy };
+  }
+
+  /* ---------- génération ---------- */
+  function generate(seed, sizeKey, useRiver, useWalls, layoutKey, useCoast) {
+    var cfg = SIZES[sizeKey];
+    function sub(k) { return mulberry32(hashSeed(seed + '|' + sizeKey + '|' + k)()); }
+    var M = { seed: seed, sizeKey: sizeKey, useRiver: useRiver, useWalls: useWalls, cfg: cfg };
+
+    var rn = sub('name');
+    M.name = cityName(rn); M.riverName = riverName(rn); M.year = 1100 + Math.floor(rn() * 350);
+
+    var layout = layoutKey;
+    if (!layout || layout === 'auto') {
+      var lr = sub('layout')();
+      layout = lr < 0.3 ? 'radial' : lr < 0.55 ? 'organic' : lr < 0.78 ? 'bastide' : 'linear';
+    }
+    M.layout = layout; M.layoutName = LAYOUT_NAMES[layout];
+
+    var rg = sub('geo');
+    var C = { x: W / 2 + (rg() - 0.5) * 80, y: H / 2 + (rg() - 0.5) * 40 };
+    var R = cfg.R, p1 = rg() * TAU, p2 = rg() * TAU, p3 = rg() * TAU;
+    var theta = layout === 'linear' ? (rg() - 0.5) * 1.0 : layout === 'bastide' ? (rg() - 0.5) * 0.3 : rg() * TAU;
+    var hx = 0, hy = 0, extf;
+    if (layout === 'radial') {
+      extf = function (a) { return R * (1 + 0.1 * Math.sin(2 * a + p1) + 0.07 * Math.sin(3 * a + p2)); };
+    } else if (layout === 'organic') {
+      extf = function (a) {
+        return R * 0.9 * (0.97 + 0.12 * Math.sin(2 * a + p1) + 0.09 * Math.sin(3 * a + p2) + 0.05 * Math.sin(5 * a + p3)) * (1 + 0.18 * Math.cos(2 * (a - theta)));
+      };
+    } else if (layout === 'linear') {
+      hx = R * 1.45; hy = R * 0.68;
+      extf = function (a) {
+        var c = Math.cos(a - theta) / hx, s = Math.sin(a - theta) / hy;
+        return (1 / Math.sqrt(c * c + s * s)) * (1 + 0.05 * Math.sin(3 * a + p2));
+      };
+    } else {
+      hx = R * (0.92 + rg() * 0.16); hy = R * (0.68 + rg() * 0.14);
+      extf = function (a) {
+        var c = Math.abs(Math.cos(a - theta)) / hx, s = Math.abs(Math.sin(a - theta)) / hy;
+        return 1 / Math.max(c, s);
+      };
+    }
+    var Rmax = 0;
+    for (var qa = 0; qa < 72; qa++) Rmax = Math.max(Rmax, extf(qa * TAU / 72));
+    /* côte : une mer d'un côté de la carte, le littoral passe au-delà des remparts */
+    var sea = null, ca = 0, cdir = { x: 1, y: 0 }, ctan = { x: 0, y: 1 }, dcEdge = 0, cA1 = 0, cA2 = 0, cf1 = 0, cf2 = 0, cq1 = 0, cq2 = 0;
+    if (useCoast) {
+      var cr = sub('coast');
+      ca = cr() * TAU; cdir = { x: Math.cos(ca), y: Math.sin(ca) }; ctan = { x: -cdir.y, y: cdir.x };
+      dcEdge = Rmax * 1.15 + 28 + cr() * 24;
+      cA1 = 14 + cr() * 22; cf1 = 0.005 + cr() * 0.004; cq1 = cr() * TAU; cA2 = 5 + cr() * 7; cf2 = 0.017 + cr() * 0.01; cq2 = cr() * TAU;
+      var rayB = function (x, y, dx, dy) {
+        var t = 1e9;
+        if (dx > 1e-6) t = Math.min(t, (W - x) / dx); else if (dx < -1e-6) t = Math.min(t, -x / dx);
+        if (dy > 1e-6) t = Math.min(t, (H - y) / dy); else if (dy < -1e-6) t = Math.min(t, -y / dy);
+        return t;
+      };
+      var needB = dcEdge + 150, haveB = rayB(C.x, C.y, cdir.x, cdir.y);
+      if (haveB < needB) {
+        var shiftC = Math.min(needB - haveB, 120, Math.max(0, rayB(C.x, C.y, -cdir.x, -cdir.y) - Rmax * 1.12));
+        C.x -= cdir.x * shiftC; C.y -= cdir.y * shiftC;
+      }
+    }
+    M.C = C; M.Rmax = Rmax;
+    function nd(x, y) { var dx = x - C.x, dy = y - C.y; return Math.hypot(dx, dy) / extf(Math.atan2(dy, dx)); }
+    var cs = Math.cos(theta), sn = Math.sin(theta);
+    function loc(x, y) { return { x: C.x + x * cs - y * sn, y: C.y + x * sn + y * cs }; }
+
+    /* rivière */
+    var river = null, rw = 0;
+    if (useRiver) {
+      var rr = sub('river');
+      var th = layout === 'linear' ? theta + (rr() - 0.5) * 0.14 : rr() * Math.PI;
+      if (useCoast) th = ca + (rr() - 0.5) * 0.9;
+      var dir = { x: Math.cos(th), y: Math.sin(th) }, nor = { x: -dir.y, y: dir.x };
+      var off = (rr() < 0.5 ? -1 : 1) * (layout === 'linear' ? (0.4 + 0.2 * rr()) * hy : (0.2 + 0.35 * rr()) * R);
+      var A = 22 + rr() * 30, f1 = 0.004 + rr() * 0.003, f2 = 0.011 + rr() * 0.005, q1 = rr() * TAU, q2 = rr() * TAU;
+      rw = (14 + rr() * 8) * (0.85 + R / 300);
+      river = [];
+      for (var t = -1000; t <= 1000; t += 14) {
+        var o = off + A * Math.sin(t * f1 + q1) + A * 0.35 * Math.sin(t * f2 + q2);
+        river.push({ x: C.x + dir.x * t + nor.x * o, y: C.y + dir.y * t + nor.y * o });
+      }
+      river = river.filter(function (p) { return p.x > -80 && p.x < W + 80 && p.y > -80 && p.y < H + 80; });
+    }
+    M.river = river; M.rw = rw;
+    function eAt(sv) { return dcEdge + cA1 * Math.sin(sv * cf1 + cq1) + cA2 * Math.sin(sv * cf2 + cq2); }
+    function eSlope(sv) { return cA1 * cf1 * Math.cos(sv * cf1 + cq1) + cA2 * cf2 * Math.cos(sv * cf2 + cq2); }
+    function seaPt(sv, off) {
+      var e = eAt(sv), m = eSlope(sv), nx = cdir.x - ctan.x * m, ny = cdir.y - ctan.y * m, l = Math.hypot(nx, ny);
+      nx /= l; ny /= l;
+      return { x: C.x + ctan.x * sv + cdir.x * e + nx * off, y: C.y + ctan.y * sv + cdir.y * e + ny * off, nx: nx, ny: ny };
+    }
+    var seaEdge = null;
+    if (useCoast) {
+      seaEdge = [];
+      for (var se = -1500; se <= 1500; se += 12) {
+        var sp0 = seaPt(se, 0);
+        if (sp0.x > -120 && sp0.x < W + 120 && sp0.y > -120 && sp0.y < H + 120) seaEdge.push(sp0);
+      }
+      sea = true;
+      M.sea = { edge: seaEdge, far: [{ x: seaEdge[seaEdge.length - 1].x + cdir.x * 1600, y: seaEdge[seaEdge.length - 1].y + cdir.y * 1600 }, { x: seaEdge[0].x + cdir.x * 1600, y: seaEdge[0].y + cdir.y * 1600 }] };
+      M.seaName = pick(sub('seaname'), ['Mer du Levant', 'Mer des Brumes', 'Mer d’Iroise', 'Mer Grise', 'Océan Occidental', 'Mer des Tempêtes', 'Mer de Mortagne']);
+    }
+    /* distance signée au littoral : positive en mer, négative sur terre */
+    function seaD(x, y) {
+      var sv = (x - C.x) * ctan.x + (y - C.y) * ctan.y, uv = (x - C.x) * cdir.x + (y - C.y) * cdir.y, du = uv - eAt(sv);
+      if (Math.abs(du) > 110) return du;
+      var best = 1e9;
+      for (var i = 0; i < seaEdge.length - 1; i++) {
+        var a = seaEdge[i], b = seaEdge[i + 1];
+        if (Math.abs(a.x - x) > 130 && Math.abs(b.x - x) > 130 && (a.x - x) * (b.x - x) > 0) continue;
+        var d = distSeg(x, y, a.x, a.y, b.x, b.y);
+        if (d < best) best = d;
+      }
+      return du > 0 ? best : -best;
+    }
+    M.seaD = sea ? seaD : null; M.seaPt = seaPt;
+    var wet = !!(river || sea);
+    function riverDist(x, y) {
+      var best = 1e9;
+      if (river) {
+        for (var i = 0; i < river.length - 1; i++) {
+          var d = distSeg(x, y, river[i].x, river[i].y, river[i + 1].x, river[i + 1].y);
+          if (d < best) best = d;
+        }
+      }
+      if (sea) best = Math.min(best, rw / 2 - seaD(x, y) - 6);
+      return best;
+    }
+
+    function riverNear(x, y) {
+      var best = null, bn = 1e9;
+      if (river) {
+        for (var i3 = 0; i3 < river.length - 1; i3++) {
+          var pp = projPt(x, y, river[i3].x, river[i3].y, river[i3 + 1].x, river[i3 + 1].y);
+          if (!best || pp.d < best.d) best = pp;
+        }
+        best.half = rw / 2; bn = best.d - rw / 2;
+      }
+      if (sea) {
+        var sd = seaD(x, y), sn = -sd - 6;
+        if (sn < bn) {
+          var bs = null;
+          for (var i4 = 0; i4 < seaEdge.length - 1; i4++) {
+            var p4 = projPt(x, y, seaEdge[i4].x, seaEdge[i4].y, seaEdge[i4 + 1].x, seaEdge[i4 + 1].y);
+            if (!bs || p4.d < bs.d) bs = p4;
+          }
+          bs.d = rw / 2 + sn; bs.half = 6;
+          best = bs;
+        }
+      }
+      return best;
+    }
+    /* Rues et rivière : un franchissement devient un pont, une route qui longe l'eau est ramenée sur la berge,
+       une rue qui finit dans l'eau est raccourcie. */
+    function cutWet(pts, sw, grid) {
+      var res = { pieces: [pts], bridges: [], hasCut: false };
+      if (!wet) return res;
+      var step = 3;
+      function resample(arr) {
+        var out = [];
+        for (var i4 = 0; i4 < arr.length - 1; i4++) {
+          var a = arr[i4], b = arr[i4 + 1], l = Math.hypot(b.x - a.x, b.y - a.y), n = Math.max(1, Math.ceil(l / step));
+          for (var k4 = 0; k4 < n; k4++) { var t2 = k4 / n; out.push({ x: a.x + (b.x - a.x) * t2, y: a.y + (b.y - a.y) * t2 }); }
+        }
+        out.push({ x: arr[arr.length - 1].x, y: arr[arr.length - 1].y });
+        return out;
+      }
+      var smp = resample(pts);
+      var runs, crossMax = grid ? rw * 6 + 40 : rw * 3.2 + 20, changed = false;
+      function findRuns() {
+        runs = []; var cur = null;
+        smp.forEach(function (sp, ix) {
+          if (riverDist(sp.x, sp.y) < rw / 2 + 2) { if (!cur) { cur = { s: ix, e: ix }; runs.push(cur); } else cur.e = ix; } else cur = null;
+        });
+      }
+      findRuns();
+      if (!runs.length) return res;
+      for (var pass = 0; pass < (grid ? 0 : 2); pass++) {
+        var any = false;
+        runs.forEach(function (r) {
+          var len = (r.e - r.s + 1) * step;
+          if (r.s === 0 || r.e === smp.length - 1 || len <= crossMax) return;
+          var pr = smp[r.s - 1], ref = riverNear(pr.x, pr.y);
+          var side = Math.sign(ref.sx * (pr.y - ref.y) - ref.sy * (pr.x - ref.x)) || 1;
+          for (var q = r.s; q <= r.e; q++) {
+            var nr = riverNear(smp[q].x, smp[q].y);
+            var ux = smp[q].x - nr.x, uy = smp[q].y - nr.y, ul = Math.hypot(ux, uy);
+            if (ul < 0.5) { ux = -nr.sy; uy = nr.sx; ul = Math.hypot(ux, uy) || 1; }
+            ux /= ul; uy /= ul;
+            if ((Math.sign(nr.sx * uy - nr.sy * ux) || 1) !== side) { ux = -ux; uy = -uy; }
+            smp[q] = { x: nr.x + ux * (nr.half + 6), y: nr.y + uy * (nr.half + 6) };
+          }
+          any = true;
+        });
+        if (!any) break;
+        changed = true; smp = resample(smp); findRuns();
+        if (!runs.length) break;
+      }
+      var cuts = [];
+      runs.forEach(function (r) {
+        var len = (r.e - r.s + 1) * step, edge = r.s === 0 || r.e === smp.length - 1;
+        if (!edge && len <= crossMax) {
+          var a0 = Math.max(0, r.s - 2), b0 = Math.min(smp.length - 1, r.e + 2), mid = (r.s + r.e) >> 1, dp = [];
+          for (var q = a0; q <= b0; q++) dp.push(smp[q]);
+          res.bridges.push({ x: smp[mid].x, y: smp[mid].y, idx: mid, len: len, pts: dp, wood: len > rw * 1.9 + 12 || (sw || 5) < 6 });
+        } else cuts.push(r);
+      });
+      if (!cuts.length && !changed) return res;
+      res.hasCut = cuts.length > 0; res.pieces = [];
+      var ranges = [], start = 0;
+      function emit(a2, b2) {
+        if ((b2 - a2) * step < 30) return;
+        var pc = [];
+        for (var q2 = a2; q2 <= b2; q2 += 3) pc.push(smp[q2]);
+        if ((b2 - a2) % 3 !== 0) pc.push(smp[b2]);
+        res.pieces.push(pc); ranges.push([a2, b2]);
+      }
+      cuts.forEach(function (r) { emit(start, r.s - 1); start = r.e + 1; });
+      emit(start, smp.length - 1);
+      res.bridges = res.bridges.filter(function (b) { return ranges.some(function (r) { return b.idx >= r[0] && b.idx <= r[1]; }); });
+      return res;
+    }
+    function bestLine(make) {
+      var pts;
+      for (var t3 = 0; t3 < 8; t3++) { pts = make(); if (!wet || !cutWet(pts).hasCut) break; }
+      return pts;
+    }
+
+    /* enceinte et portes */
+    var verts = [], gateIdx = [], i, j, k;
+    var ng = cfg.gMin + Math.floor(rg() * (cfg.gMax - cfg.gMin + 1));
+    if (layout === 'linear') ng = Math.max(ng, 3);
+    var gx = 0, gy = 0, gridXs = [], gridYs = [];
+    if (layout === 'bastide') {
+      gx = 34 + rg() * 12; gy = 32 + rg() * 12;
+      for (i = Math.ceil(-hx * 0.97 / gx); i <= Math.floor(hx * 0.97 / gx); i++) gridXs.push(i * gx);
+      for (j = Math.ceil(-hy * 0.97 / gy); j <= Math.floor(hy * 0.97 / gy); j++) gridYs.push(j * gy);
+      var mainEnds = [], otherEnds = [];
+      gridXs.forEach(function (x) {
+        (x === 0 ? mainEnds : otherEnds).push({ lx: x, ly: -hy, side: 0, dir: -Math.PI / 2 });
+        (x === 0 ? mainEnds : otherEnds).push({ lx: x, ly: hy, side: 2, dir: Math.PI / 2 });
+      });
+      gridYs.forEach(function (y) {
+        (y === 0 ? mainEnds : otherEnds).push({ lx: hx, ly: y, side: 1, dir: 0 });
+        (y === 0 ? mainEnds : otherEnds).push({ lx: -hx, ly: y, side: 3, dir: Math.PI });
+      });
+      function dryEnd(c) { var w0 = loc(c.lx, c.ly); return !wet || riverDist(w0.x, w0.y) >= rw / 2 + 18; }
+      mainEnds = mainEnds.filter(dryEnd); otherEnds = otherEnds.filter(dryEnd);
+      shuffle(mainEnds, rg); shuffle(otherEnds, rg);
+      var chosen = mainEnds.slice(0, Math.min(ng, 4));
+      var more = Math.max(0, 2 - chosen.length);
+      otherEnds.forEach(function (c) {
+        if (more <= 0) return;
+        var pw = loc(c.lx, c.ly);
+        if (chosen.every(function (o) { var po2 = loc(o.lx, o.ly); return Math.hypot(po2.x - pw.x, po2.y - pw.y) > 110; })) { chosen.push(c); more--; }
+      });
+      var sides = [[-hx, -hy, hx, -hy], [hx, -hy, hx, hy], [hx, hy, -hx, hy], [-hx, hy, -hx, -hy]];
+      for (var sd = 0; sd < 4; sd++) {
+        var sg = sides[sd], Ls = Math.hypot(sg[2] - sg[0], sg[3] - sg[1]);
+        var pts0 = [{ t: 0, corner: true }];
+        for (k = 0; k < chosen.length; k++) {
+          if (chosen[k].side === sd) pts0.push({ t: Math.hypot(chosen[k].lx - sg[0], chosen[k].ly - sg[1]) / Ls, gate: chosen[k] });
+        }
+        var nsub = Math.max(1, Math.round(Ls / 60));
+        for (k = 1; k < nsub; k++) {
+          var tt = k / nsub;
+          if (pts0.every(function (o) { return Math.abs(o.t - tt) * Ls > 24; })) pts0.push({ t: tt });
+        }
+        pts0.sort(function (a, b) { return a.t - b.t; });
+        for (k = 0; k < pts0.length; k++) {
+          var po = pts0[k];
+          var w = loc(sg[0] + (sg[2] - sg[0]) * po.t, sg[1] + (sg[3] - sg[1]) * po.t);
+          if (wet && !po.gate && riverDist(w.x, w.y) < rw / 2 + 8) {
+            if (!po.corner) continue;
+            var rn2 = riverNear(w.x, w.y), dd2 = rn2.d || 1;
+            w = { x: rn2.x + (w.x - rn2.x) / dd2 * (rw / 2 + 12), y: rn2.y + (w.y - rn2.y) / dd2 * (rw / 2 + 12) };
+          }
+          var v = { x: w.x, y: w.y, a: Math.atan2(w.y - C.y, w.x - C.x), corner: !!po.corner };
+          if (po.gate) { v.gdir = theta + po.gate.dir; verts.push(v); gateIdx.push(verts.length - 1); } else verts.push(v);
+        }
+      }
+    } else {
+      var N0 = cfg.N[0] + Math.floor(rg() * (cfg.N[1] - cfg.N[0] + 1));
+      for (i = 0; i < N0; i++) {
+        var va = (i + (rg() - 0.5) * 0.25) * TAU / N0, vr = extf(va) * (0.97 + 0.06 * rg());
+        verts.push({ a: va, x: C.x + Math.cos(va) * vr, y: C.y + Math.sin(va) * vr });
+      }
+      if (wet) {
+        verts.forEach(function (v) {
+          var rn3 = riverNear(v.x, v.y);
+          if (rn3.d < rw / 2 + 8) {
+            var dd3 = rn3.d || 1, ux = (v.x - rn3.x) / dd3, uy = (v.y - rn3.y) / dd3;
+            if (!rn3.d) { ux = Math.cos(v.a); uy = Math.sin(v.a); }
+            v.x = rn3.x + ux * (rw / 2 + 12); v.y = rn3.y + uy * (rw / 2 + 12);
+            v.a = Math.atan2(v.y - C.y, v.x - C.x);
+          }
+        });
+      }
+      var want = [];
+      if (layout === 'linear') {
+        want = [theta, theta + Math.PI];
+        var tr = 0;
+        while (want.length < ng && tr < 200) {
+          tr++;
+          var wa = theta + (rg() < 0.5 ? 1 : -1) * (0.5 + rg() * 2.2);
+          if (want.every(function (o) { return angDiff(o, wa) > 0.55; })) want.push(wa);
+        }
+      } else {
+        var wb = rg() * TAU;
+        for (k = 0; k < ng; k++) want.push(wb + k * TAU / ng + (rg() - 0.5) * TAU / ng * 0.7);
+      }
+      want.forEach(function (wa2) {
+        var bi = -1, bd = 1e9;
+        verts.forEach(function (v2, ix) { var d = angDiff(v2.a, wa2); if (d < bd && gateIdx.indexOf(ix) < 0 && (!wet || riverDist(v2.x, v2.y) >= rw / 2 + 18)) { bd = d; bi = ix; } });
+        if (bi >= 0) gateIdx.push(bi);
+      });
+      if (layout === 'organic' && gateIdx.length > 2) {
+        var g0 = gateIdx[0], far = 1, farD = -1;
+        for (k = 1; k < gateIdx.length; k++) {
+          var dd = angDiff(verts[g0].a, verts[gateIdx[k]].a);
+          if (dd > farD) { farD = dd; far = k; }
+        }
+        var tmp = gateIdx[1]; gateIdx[1] = gateIdx[far]; gateIdx[far] = tmp;
+      }
+    }
+    var N = verts.length; ng = gateIdx.length;
+    M.verts = verts; M.N = N; M.gateIdx = gateIdx;
+    function wallDist(x, y) {
+      var best = 1e9;
+      for (var e = 0; e < N; e++) {
+        var p = verts[e], q = verts[(e + 1) % N];
+        var d = distSeg(x, y, p.x, p.y, q.x, q.y);
+        if (d < best) best = d;
+      }
+      return best;
+    }
+
+    /* place du marché */
+    var mr = Math.max(14, 0.105 * R), P, mcell = { i: 0, j: 0 };
+    if (layout === 'bastide') {
+      var bestM = null;
+      for (var mci = -2; mci <= 1; mci++) {
+        for (var mcj = -2; mcj <= 1; mcj++) {
+          if (gridXs.indexOf(mci * gx) < 0 || gridXs.indexOf((mci + 1) * gx) < 0 || gridYs.indexOf(mcj * gy) < 0 || gridYs.indexOf((mcj + 1) * gy) < 0) continue;
+          var mcc = loc((mci + 0.5) * gx, (mcj + 0.5) * gy);
+          var msc = Math.abs(mci + 0.5) + Math.abs(mcj + 0.5);
+          if (wet && riverDist(mcc.x, mcc.y) < rw / 2 + Math.max(gx, gy) * 0.75) continue;
+          if (!bestM || msc < bestM.sc) bestM = { i: mci, j: mcj, sc: msc, p: mcc };
+        }
+      }
+      if (!bestM) bestM = { i: 0, j: 0, p: loc(gx / 2, gy / 2) };
+      mcell = { i: bestM.i, j: bestM.j }; P = bestM.p;
+    } else {
+      var rp = sub('market'), bestP = null, bestPd = -1;
+      for (var tp = 0; tp < 80; tp++) {
+        var grow = tp / 80, pa = rp() * TAU, cand, pd;
+        if (layout === 'radial') { pd = rp() * (0.08 + 0.4 * grow) * R; cand = { x: C.x + Math.cos(pa) * pd, y: C.y + Math.sin(pa) * pd }; }
+        else if (layout === 'organic') { pd = (0.08 + rp() * 0.22 + 0.2 * grow) * R; cand = { x: C.x + Math.cos(pa) * pd, y: C.y + Math.sin(pa) * pd }; }
+        else { cand = loc((rp() - 0.5) * (0.7 + 0.3 * grow) * hx, (rp() - 0.5) * (0.3 + 0.5 * grow) * hy); }
+        if (nd(cand.x, cand.y) > 0.6) continue;
+        var rdp = wet ? riverDist(cand.x, cand.y) : 1e9;
+        if (!bestP || rdp > bestPd) { bestP = cand; bestPd = rdp; }
+        if (rdp > rw / 2 + mr + 12) break;
+      }
+      P = bestP || { x: C.x, y: C.y };
+    }
+    M.P = P; M.mr = mr;
+
+    /* rues */
+    var rs = sub('streets'), streets = [], innerLines = [], outers = [];
+    function nearestOnInner(x, y) {
+      var best = null;
+      innerLines.forEach(function (ln) {
+        for (var j2 = 0; j2 < ln.length - 1; j2++) {
+          var pp = projPt(x, y, ln[j2].x, ln[j2].y, ln[j2 + 1].x, ln[j2 + 1].y);
+          if (!best || pp.d < best.d) best = pp;
+        }
+      });
+      return best || P;
+    }
+    function gateOuter(G) {
+      var dirA = G.gdir !== undefined ? G.gdir : Math.atan2(G.y - C.y, G.x - C.x);
+      var dx = Math.cos(dirA), dy = Math.sin(dirA), pts = null;
+      for (var att = 0; att < 8; att++) {
+        pts = null;
+        if (layout !== 'bastide' && outers.length && rs() < 0.35) {
+          var oo = outers[Math.floor(rs() * outers.length)];
+          var tgt = oo[Math.min(oo.length - 1, 10 + Math.floor(rs() * Math.max(1, oo.length - 10)))];
+          var dl = Math.hypot(tgt.x - G.x, tgt.y - G.y);
+          if (dl > 60 && ((tgt.x - G.x) * dx + (tgt.y - G.y) * dy) / dl > 0.5) pts = wobblyLine(rs, G, tgt, dl * 0.08, 22);
+        }
+        if (!pts) {
+          if (layout === 'bastide') {
+            pts = [{ x: G.x, y: G.y }].concat(wobblyLine(rs, { x: G.x + dx * 150, y: G.y + dy * 150 }, { x: G.x + dx * 900, y: G.y + dy * 900 }, 40, 40));
+          } else pts = wobblyLine(rs, G, { x: G.x + dx * 900, y: G.y + dy * 900 }, 60, 45);
+        }
+        if (!wet || !cutWet(pts).hasCut) break;
+      }
+      var kept = [];
+      for (var j2 = 0; j2 < pts.length; j2++) {
+        kept.push(pts[j2]);
+        if (pts[j2].x < 0 || pts[j2].x > W || pts[j2].y < 0 || pts[j2].y > H) break;
+      }
+      outers.push(kept);
+      return kept;
+    }
+    function arc(rho, a0, span, ri) {
+      var pts = [], steps = Math.max(10, Math.round(56 * span / TAU));
+      for (var j2 = 0; j2 <= steps; j2++) {
+        var a = a0 + j2 * span / steps, r = rho * extf(a) * (1 + 0.035 * Math.sin(5 * a + ringPh + ri * 2));
+        pts.push({ x: C.x + Math.cos(a) * r, y: C.y + Math.sin(a) * r });
+      }
+      return pts;
+    }
+    var ringPh = rs() * TAU;
+
+    gateIdx.forEach(function (gi, order) {
+      var G = verts[gi], outerPts = gateOuter(G);
+      if (layout === 'bastide') { streets.push({ pts: outerPts, w: 6.5, kind: 'main' }); return; }
+      var inner, spine = layout === 'radial' || order < 2;
+      if (spine) {
+        var len0 = Math.hypot(G.x - P.x, G.y - P.y);
+        inner = bestLine(function () { return wobblyLine(rs, P, G, len0 * (layout === 'organic' ? 0.13 : layout === 'linear' ? 0.05 : 0.07), 18); });
+      } else {
+        var np = nearestOnInner(G.x, G.y);
+        inner = bestLine(function () { return wobblyLine(rs, { x: np.x, y: np.y }, G, Math.hypot(np.x - G.x, np.y - G.y) * 0.1, 14); });
+      }
+      innerLines.push(inner);
+      streets.push({ pts: inner.concat(outerPts.slice(1)), w: 7.5, kind: 'main' });
+    });
+
+    /* port : plage et jetée (bourg), quai de bois, jetées et chantier (ville), docks, phare et chantiers (cité) */
+    var harbor = null;
+    if (sea) {
+      var hr = sub('harbor'), HL = { bourg: 0, ville: 120, cite: 210 }[sizeKey];
+      var sC = (P.x - C.x) * ctan.x + (P.y - C.y) * ctan.y, sh = sC + (hr() - 0.5) * 40, sMouth = null;
+      if (river) {
+        for (var ri2 = 1; ri2 < river.length; ri2++) {
+          var d0 = seaD(river[ri2 - 1].x, river[ri2 - 1].y), d1 = seaD(river[ri2].x, river[ri2].y);
+          if ((d0 <= 0) !== (d1 <= 0)) { sMouth = (river[ri2].x - C.x) * ctan.x + (river[ri2].y - C.y) * ctan.y; break; }
+        }
+      }
+      var clr = HL / 2 + (sizeKey === 'bourg' ? 60 : sizeKey === 'ville' ? 70 : 85);
+      if (sMouth !== null && Math.abs(sh - sMouth) < clr) sh = sMouth + (sh >= sMouth ? 1 : -1) * clr;
+      var insideM = function (pp, m) { return pp.x > m && pp.x < W - m && pp.y > m && pp.y < H - m; };
+      for (var cl2 = 0; cl2 < 24; cl2++) {
+        var ext = HL / 2 + (sizeKey === 'bourg' ? 60 : 85);
+        var pa = seaPt(sh - ext, 20), pb2 = seaPt(sh + ext, 20);
+        if (insideM(pa, 45) && insideM(pb2, 45)) break;
+        var dirS = (!insideM(pa, 45) ? 1 : 0) - (!insideM(pb2, 45) ? 1 : 0);
+        sh += dirS * 18;
+      }
+      var side = sMouth !== null ? (sh >= sMouth ? 1 : -1) : (hr() < 0.5 ? 1 : -1);
+      var inMap = function (pp) { return pp.x > 50 && pp.x < W - 50 && pp.y > 50 && pp.y < H - 50; };
+      var roomOn = function (sg) { return inMap(seaPt(sh + sg * (HL / 2 + 230), -10)); };
+      if (!roomOn(side) && roomOn(-side)) side = -side;
+      var Hq = seaPt(sh, -30), gb = gateIdx[0], gdm = 1e9;
+      var gscore = 1e18;
+      gateIdx.forEach(function (gi) {
+        var dg = Math.hypot(verts[gi].x - Hq.x, verts[gi].y - Hq.y), wetN = 0;
+        if (river) for (var zz = 0; zz <= 24; zz++) if (riverDist(verts[gi].x + (Hq.x - verts[gi].x) * zz / 24, verts[gi].y + (Hq.y - verts[gi].y) * zz / 24) < rw / 2 + 4) wetN++;
+        var sc = (wetN ? 1000 : 0) + dg;
+        if (sc < gscore) { gscore = sc; gdm = dg; gb = gi; }
+      });
+      var G0 = verts[gb];
+      streets.push({ pts: wobblyLine(hr, { x: G0.x, y: G0.y }, { x: Hq.x, y: Hq.y }, gdm * 0.04, 16), w: 6.5, kind: 'main' });
+      harbor = { sh: sh, L: HL, side: side, size: sizeKey, jetties: [], ships: [], slips: [], quay: null, light: null, beach: sizeKey === 'bourg', stub: [seaPt(sh, -30), seaPt(sh, -4)], boats: [], ex: [] };
+      function addEx(p, r) { harbor.ex.push({ x: p.x, y: p.y, r: r }); }
+      function ship(sv, off, len, big) {
+        var q0 = seaPt(sv, off);
+        harbor.ships.push({ x: q0.x, y: q0.y, ang: Math.atan2(q0.ny, q0.nx) + (hr() - 0.5) * 0.25 + (hr() < 0.5 ? 0 : Math.PI), len: len, w: len * 0.34, big: !!big, masts: big ? 2 : 1 });
+      }
+      if (sizeKey === 'bourg') {
+        harbor.jetties.push({ s: sh, from: -26, to: 46, w: 6, stone: false });
+        addEx(seaPt(sh, -16), 24); addEx(seaPt(sh - 16, -8), 14); addEx(seaPt(sh + 16, -8), 14);
+        [[-34, -7], [30, -6]].forEach(function (b) { var q1 = seaPt(sh + b[0], b[1]); harbor.boats.push({ x: q1.x, y: q1.y, ang: Math.atan2(q1.nx, -q1.ny) + (hr() - 0.5) * 0.5, len: 12 }); });
+        ship(sh + 13, 22, 14, false);
+      } else {
+        var half = HL / 2;
+        harbor.quay = { s0: sh - half, s1: sh + half, from: -22, to: 3, stone: sizeKey === 'cite', w0: 0 };
+        if (sizeKey === 'cite') harbor.quay2 = { s0: sh - half - 55, s1: sh + half + 55, from: -17, to: 3 };
+        for (var qs = sh - half - (sizeKey === 'cite' ? 55 : 0); qs <= sh + half + (sizeKey === 'cite' ? 55 : 0); qs += 17) addEx(seaPt(qs, -14), 24);
+        var nJ = sizeKey === 'cite' ? 6 : 3;
+        for (var jj = 0; jj < nJ; jj++) {
+          var js = sh - half * 0.85 + (jj + (hr() - 0.5) * 0.5) * (half * 1.7 / (nJ - 1));
+          var jl = (sizeKey === 'cite' ? 34 : 24) + hr() * (sizeKey === 'cite' ? 26 : 16);
+          harbor.jetties.push({ s: js, from: -2, to: jl, w: sizeKey === 'cite' && Math.abs(js - sh) < half * 0.5 ? 8 : 5.5, stone: sizeKey === 'cite' && Math.abs(js - sh) < half * 0.5 });
+          ship(js + 9, jl * 0.6, sizeKey === 'cite' ? 22 + hr() * 10 : 17 + hr() * 6, sizeKey === 'cite');
+          if (sizeKey === 'cite' && hr() < 0.7) ship(js - 9.5, jl * 0.45, 20 + hr() * 9, true);
+        }
+        if (sizeKey === 'ville') { ship(sh + 5, 62, 20, false); }
+        else { ship(sh - 30, 92, 30, true); ship(sh + 40, 100, 28, true); ship(sh + 5, 78, 26, true); }
+        var nSlip = sizeKey === 'cite' ? 2 : 1;
+        for (var sl = 0; sl < nSlip; sl++) {
+          var ss = sh + side * (half + (sizeKey === 'cite' ? 85 : 62) + sl * 44);
+          if (sizeKey === 'cite' && roomOn(-side) && roomOn(side)) ss = sh + side * (half + 85 + sl * 44);
+          harbor.slips.push({ s: ss });
+          addEx(seaPt(ss, -42), 30); addEx(seaPt(ss, -18), 22);
+          addEx(seaPt(ss - 12, -34), 18); addEx(seaPt(ss + 12, -34), 18);
+        }
+        if (sizeKey === 'cite') {
+          var lsd = (roomOn(-side) && roomOn(side)) ? -side : side, ld = lsd === side ? half + 55 + 120 : half + 95;
+          harbor.light = { s: sh + lsd * ld, len: 70 };
+          if (!inMap(seaPt(harbor.light.s, 40))) harbor.light.s = sh + lsd * (half + 70);
+        }
+        if (harbor.light) addEx(seaPt(harbor.light.s, -20), 22);
+      }
+      M.harbor = harbor;
+    }
+
+    function branch() {
+      if (!innerLines.length) return;
+      var line = innerLines[Math.floor(rs() * innerLines.length)];
+      if (line.length < 4) return;
+      var idx = 1 + Math.floor(rs() * (line.length - 2));
+      var p = line[idx], tang = Math.atan2(line[idx + 1].y - line[idx - 1].y, line[idx + 1].x - line[idx - 1].x);
+      if (nd(p.x, p.y) > 0.85 || Math.hypot(p.x - P.x, p.y - P.y) < mr + 12 || (wet && riverDist(p.x, p.y) < rw / 2 + 8)) return;
+      var dirB = tang + (rs() < 0.5 ? 1 : -1) * Math.PI / 2 + (rs() - 0.5) * 0.4;
+      var pts = [{ x: p.x, y: p.y }], x = p.x, y = p.y, len = 0, maxLen = 60 + rs() * 140;
+      while (len < maxLen) {
+        dirB += (rs() - 0.5) * 0.3; x += Math.cos(dirB) * 9; y += Math.sin(dirB) * 9; len += 9;
+        if (nd(x, y) > 0.93 || (wet && riverDist(x, y) < rw / 2 + 4)) break;
+        pts.push({ x: x, y: y });
+      }
+      if (len >= 27 && pts.length >= 3) {
+        streets.push({ pts: pts, w: 3.2, kind: 'minor' });
+        if (rs() < 0.3) innerLines.push(pts);
+      }
+    }
+
+    if (layout === 'radial') {
+      cfg.rings.forEach(function (rho, ri) {
+        var full = rs() < 0.65, a0 = rs() * TAU, span = full ? TAU : 2.6 + rs() * 2.6;
+        var pts = arc(rho, a0, span, ri);
+        streets.push({ pts: pts, w: 5, kind: 'ring' }); innerLines.push(pts);
+      });
+      for (var m = 0; m < cfg.minors; m++) {
+        var ma, tries = 0;
+        do { ma = rs() * TAU; tries++; } while (tries < 20 && gateIdx.some(function (gi) { return angDiff(verts[gi].a, ma) < 0.18; }));
+        var r0 = rs() < 0.35 ? mr * 1.3 : cfg.rings[Math.floor(rs() * cfg.rings.length)] * extf(ma);
+        var r1 = 0.93 * extf(ma);
+        if (r1 - r0 < 25) continue;
+        var s0 = { x: C.x + Math.cos(ma) * r0, y: C.y + Math.sin(ma) * r0 };
+        var s1 = { x: C.x + Math.cos(ma) * r1, y: C.y + Math.sin(ma) * r1 };
+        streets.push({ pts: wobblyLine(rs, s0, s1, (r1 - r0) * 0.06, 10), w: 3.2, kind: 'minor' });
+      }
+    } else if (layout === 'organic') {
+      var nr = sizeKey === 'bourg' ? 1 : 2;
+      for (k = 0; k < nr; k++) {
+        var pts1 = arc(0.38 + rs() * 0.4, rs() * TAU, 1.8 + rs() * 2.8, k);
+        streets.push({ pts: pts1, w: 5, kind: 'ring' }); innerLines.push(pts1);
+      }
+      for (k = 0; k < Math.round(cfg.minors * 1.4); k++) branch();
+    } else if (layout === 'linear') {
+      var npar = sizeKey === 'bourg' ? 1 : 2, sgn0 = rs() < 0.5 ? 1 : -1;
+      for (k = 0; k < npar; k++) {
+        var yoff = (k === 0 ? sgn0 : -sgn0) * (0.34 + rs() * 0.08) * hy;
+        var xe = hx * Math.sqrt(Math.max(0.05, 1 - (yoff / hy) * (yoff / hy))) * 0.88;
+        var pts2 = wobblyLine(rs, loc(-xe, yoff), loc(xe, yoff), 12, 30);
+        if (wet && cutWet(pts2).hasCut) continue;
+        streets.push({ pts: pts2, w: 5, kind: 'ring' }); innerLines.push(pts2);
+      }
+      for (k = 0; k < Math.round(cfg.minors * 1.8); k++) branch();
+    } else {
+      gridXs.forEach(function (x) {
+        streets.push({ pts: [loc(x, -hy), loc(x, hy)], w: x === 0 ? 6.5 : 3.8, kind: x === 0 ? 'ring' : 'minor' });
+      });
+      gridYs.forEach(function (y) {
+        streets.push({ pts: [loc(-hx, y), loc(hx, y)], w: y === 0 ? 6.5 : 3.8, kind: y === 0 ? 'ring' : 'minor' });
+      });
+    }
+    var bridgeList = [];
+    if (wet && layout !== 'bastide') {
+      streets.forEach(function (st) {
+        var pts = st.pts, n0 = pts.length;
+        if (st.kind !== 'ring' || n0 < 8 || Math.hypot(pts[0].x - pts[n0 - 1].x, pts[0].y - pts[n0 - 1].y) > 5) return;
+        var bi = -1, bv = -1;
+        for (var z = 0; z < n0 - 1; z++) { var dz = riverDist(pts[z].x, pts[z].y); if (dz > bv) { bv = dz; bi = z; } }
+        if (bi > 0) st.pts = pts.slice(bi, n0 - 1).concat(pts.slice(0, bi + 1));
+      });
+      streets = streets.filter(function (st) {
+        var pts = st.pts, open = Math.hypot(pts[0].x - pts[pts.length - 1].x, pts[0].y - pts[pts.length - 1].y) > 5;
+        if (st.kind !== 'minor' && !(st.kind === 'ring' && open)) return true;
+        while (pts.length > 3 && riverDist(pts[pts.length - 1].x, pts[pts.length - 1].y) < rw / 2 + 16) pts.pop();
+        if (st.kind === 'ring') while (pts.length > 3 && riverDist(pts[0].x, pts[0].y) < rw / 2 + 16) pts.shift();
+        return pts.length >= 3;
+      });
+    }
+    if (layout !== 'bastide') {
+      /* rues secondaires absurdes : on écarte celles qui coupent une autre voie en angle aigu, longent une voie de trop près ou s'y raccordent en pointe */
+      var accepted = streets.filter(function (st) { return st.kind !== 'minor'; });
+      var minorsList = streets.filter(function (st) { return st.kind === 'minor'; });
+      function acute(a, b) { var d = Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))); return Math.min(d, Math.PI - d); }
+      minorsList.forEach(function (m0) {
+        var mp = m0.pts, bad = false;
+        for (var oi = 0; oi < accepted.length && !bad; oi++) {
+          var op = accepted[oi].pts, near = 0;
+          for (var i2 = 0; i2 < mp.length && !bad; i2++) {
+            var dm = 1e9;
+            for (var j3 = 0; j3 < op.length - 1; j3++) {
+              dm = Math.min(dm, distSeg(mp[i2].x, mp[i2].y, op[j3].x, op[j3].y, op[j3 + 1].x, op[j3 + 1].y));
+              if (i2 < mp.length - 1) {
+                var hit = segInter(mp[i2], mp[i2 + 1], op[j3], op[j3 + 1]);
+                if (hit && acute(hit.ang, Math.atan2(op[j3 + 1].y - op[j3].y, op[j3 + 1].x - op[j3].x)) < 0.75) { bad = true; break; }
+              }
+            }
+            if (dm < 9 && i2 > 0 && i2 < mp.length - 1) near++;
+            if (dm < 12 && (i2 === 0 || i2 === mp.length - 1) && mp.length > 3) {
+              /* raccord en pointe : tangente de la rue à l'approche vs voie la plus proche */
+              var q = i2 === 0 ? mp[1] : mp[mp.length - 2], e0 = mp[i2], best = 1e9, ba = 0;
+              for (var j4 = 0; j4 < op.length - 1; j4++) {
+                var dd = distSeg(e0.x, e0.y, op[j4].x, op[j4].y, op[j4 + 1].x, op[j4 + 1].y);
+                if (dd < best) { best = dd; ba = Math.atan2(op[j4 + 1].y - op[j4].y, op[j4 + 1].x - op[j4].x); }
+              }
+              if (acute(Math.atan2(e0.y - q.y, e0.x - q.x), ba) < 0.75) bad = true;
+            }
+          }
+          if (near >= 2) bad = true;
+        }
+        if (!bad) accepted.push(m0);
+      });
+      /* rues secondaires flottantes : on raccorde une extrémité à la voie voisine, sinon on supprime la rue */
+      function nearOther(pt, self) {
+        var best = 1e9, bp = null;
+        accepted.forEach(function (o) {
+          if (o === self) return;
+          for (var j5 = 0; j5 < o.pts.length - 1; j5++) {
+            var a1 = o.pts[j5], b1 = o.pts[j5 + 1], dx = b1.x - a1.x, dy = b1.y - a1.y, l2 = dx * dx + dy * dy;
+            var t = l2 ? Math.max(0, Math.min(1, ((pt.x - a1.x) * dx + (pt.y - a1.y) * dy) / l2)) : 0;
+            var px = a1.x + t * dx, py = a1.y + t * dy, dd = Math.hypot(pt.x - px, pt.y - py);
+            if (dd < best) { best = dd; bp = { x: px, y: py }; }
+          }
+        });
+        return { d: best, p: bp };
+      }
+      accepted = accepted.filter(function (st) {
+        if (st.kind !== 'minor') return true;
+        var e0 = st.pts[0], e1 = st.pts[st.pts.length - 1], n0 = nearOther(e0, st), n1 = nearOther(e1, st);
+        var c0 = n0.d < 6 || Math.hypot(e0.x - P.x, e0.y - P.y) < mr * 1.7, c1 = n1.d < 6;
+        if (c0 || c1) return true;
+        if (n0.d < 45) { st.pts.unshift({ x: n0.p.x, y: n0.p.y }); return true; }
+        if (n1.d < 45) { st.pts.push({ x: n1.p.x, y: n1.p.y }); return true; }
+        return false;
+      });
+      streets = accepted;
+    }
+    if (wet) {
+      /* Ponts : au plus 1 (bourg), 2 (ville) ou 3 (cité), espacés ; les autres franchissements sont coupés */
+      var BR_MAX = { bourg: 1, ville: 2, cite: 3 }[sizeKey], BR_GAP = 0.5 * R, stepB = 3;
+      var woodStyle = sizeKey === 'bourg' ? true : sizeKey === 'cite' ? false : sub('bridgestyle')() < 0.5;
+      M.bridgeMax = BR_MAX; M.bridgeGap = BR_GAP; M.bridgeWood = woodStyle;
+      var resB = function (arr) {
+        var out = [];
+        for (var i4 = 0; i4 < arr.length - 1; i4++) {
+          var a = arr[i4], b = arr[i4 + 1], l = Math.hypot(b.x - a.x, b.y - a.y), n = Math.max(1, Math.ceil(l / stepB));
+          for (var k4 = 0; k4 < n; k4++) { var t2 = k4 / n; out.push({ x: a.x + (b.x - a.x) * t2, y: a.y + (b.y - a.y) * t2 }); }
+        }
+        out.push({ x: arr[arr.length - 1].x, y: arr[arr.length - 1].y });
+        return out;
+      };
+      var analyze = function (pts, grid) {
+        var smp = resB(pts), crossMax = grid ? rw * 6 + 40 : rw * 3.2 + 20, runs, changed = false;
+        function find() {
+          runs = []; var cur = null;
+          smp.forEach(function (sp, ix) {
+            if (riverDist(sp.x, sp.y) < rw / 2 + 2) { if (!cur) { cur = { s: ix, e: ix }; runs.push(cur); } else cur.e = ix; } else cur = null;
+          });
+        }
+        find();
+        if (!runs.length) return { smp: smp, cross: [], cuts: [], changed: false };
+        for (var pass = 0; pass < (grid ? 0 : 2); pass++) {
+          var any = false;
+          runs.forEach(function (r) {
+            var len = (r.e - r.s + 1) * stepB;
+            if (r.s === 0 || r.e === smp.length - 1 || len <= crossMax) return;
+            var pr = smp[r.s - 1], ref = riverNear(pr.x, pr.y);
+            var side = Math.sign(ref.sx * (pr.y - ref.y) - ref.sy * (pr.x - ref.x)) || 1;
+            for (var q = r.s; q <= r.e; q++) {
+              var nr = riverNear(smp[q].x, smp[q].y);
+              var ux = smp[q].x - nr.x, uy = smp[q].y - nr.y, ul = Math.hypot(ux, uy);
+              if (ul < 0.5) { ux = -nr.sy; uy = nr.sx; ul = Math.hypot(ux, uy) || 1; }
+              ux /= ul; uy /= ul;
+              if ((Math.sign(nr.sx * uy - nr.sy * ux) || 1) !== side) { ux = -ux; uy = -uy; }
+              smp[q] = { x: nr.x + ux * (nr.half + 6), y: nr.y + uy * (nr.half + 6) };
+            }
+            any = true;
+          });
+          if (!any) break;
+          changed = true; smp = resB(smp); find();
+          if (!runs.length) break;
+        }
+        var cross = [], cuts = [];
+        runs.forEach(function (r) {
+          var len = (r.e - r.s + 1) * stepB, edge = r.s < 4 || r.e > smp.length - 5;
+          if (!edge && len <= crossMax) cross.push({ s: r.s, e: r.e, len: len }); else cuts.push({ s: r.s, e: r.e });
+        });
+        return { smp: smp, cross: cross, cuts: cuts, changed: changed };
+      };
+      var infos = streets.map(function (st) { return analyze(st.pts, layout === 'bastide'); });
+      var cands = [];
+      infos.forEach(function (inf, si) {
+        var st = streets[si];
+        inf.cross.forEach(function (c, ci) {
+          var mid = inf.smp[(c.s + c.e) >> 1];
+          var rank = st.kind === 'main' ? 0 : st.w >= 6 ? 1 : st.kind === 'ring' ? 1.5 : 2;
+          var score = (nd(mid.x, mid.y) < 1.05 ? 0 : 20) + rank * 5 + c.len / rw * 2 + Math.hypot(mid.x - P.x, mid.y - P.y) / R * 3 + (c.len <= rw * 2.6 + 14 ? 0 : 12);
+          cands.push({ si: si, ci: ci, mid: mid, score: score, rank: rank });
+        });
+      });
+      /* un pont doit toujours mener à une artère principale : on écarte les rues secondaires tant qu'une artère peut franchir la rivière */
+      var strong = cands.filter(function (c) { return c.rank <= 1; });
+      if (strong.length) cands = strong; else { var mid2 = cands.filter(function (c) { return c.rank <= 1.5; }); if (mid2.length) cands = mid2; }
+      cands.sort(function (a, b) { return a.score - b.score; });
+      var chosen = [];
+      cands.forEach(function (c) {
+        if (chosen.length >= BR_MAX) return;
+        if (chosen.every(function (o) { return Math.hypot(o.mid.x - c.mid.x, o.mid.y - c.mid.y) >= BR_GAP; })) chosen.push(c);
+      });
+      var sel = streets.map(function () { return {}; });
+      chosen.forEach(function (c) { sel[c.si][c.ci] = true; });
+
+      /* découpe : on ne garde que les ponts retenus, les autres franchissements sont coupés avec les bouts reculés */
+      var pieces = [], bridgesOut = [];
+      streets.forEach(function (st, si) {
+        var inf = infos[si], smp = inf.smp, n = smp.length, q, ranges = [], a0 = -1;
+        if (!inf.cross.length && !inf.cuts.length && !inf.changed) { pieces.push({ pts: st.pts, w: st.w, kind: st.kind }); return; }
+        var prot = [], removed = [];
+        for (q = 0; q < n; q++) { prot.push(false); removed.push(false); }
+        inf.cross.forEach(function (c, ci) {
+          if (sel[si][ci]) {
+            for (var z = Math.max(0, c.s - 3); z <= Math.min(n - 1, c.e + 3); z++) prot[z] = true;
+            /* pont droit : on redresse la route entre les deux extrémités du tablier */
+            var z0 = Math.max(0, c.s - 2), z1 = Math.min(n - 1, c.e + 2), A = smp[z0], B = smp[z1];
+            for (var zz = z0 + 1; zz < z1; zz++) {
+              var tt = (zz - z0) / (z1 - z0);
+              smp[zz] = { x: A.x + (B.x - A.x) * tt, y: A.y + (B.y - A.y) * tt };
+            }
+          }
+        });
+        var cutRuns = inf.cuts.slice();
+        inf.cross.forEach(function (c, ci) { if (!sel[si][ci]) cutRuns.push({ s: c.s, e: c.e }); });
+        cutRuns.forEach(function (r) {
+          var a = r.s, b = r.e;
+          while (a > 0 && !prot[a - 1] && riverDist(smp[a - 1].x, smp[a - 1].y) < rw / 2 + 22) a--;
+          while (b < n - 1 && !prot[b + 1] && riverDist(smp[b + 1].x, smp[b + 1].y) < rw / 2 + 22) b++;
+          for (var z = a; z <= b; z++) removed[z] = true;
+        });
+        for (q = 0; q <= n; q++) {
+          if (q < n && !removed[q]) { if (a0 < 0) a0 = q; }
+          else if (a0 >= 0) { if ((q - 1 - a0) * stepB >= 30) ranges.push([a0, q - 1]); a0 = -1; }
+        }
+        ranges.forEach(function (rg2) {
+          var pc = [];
+          for (var z = rg2[0]; z <= rg2[1]; z += 3) pc.push(smp[z]);
+          if ((rg2[1] - rg2[0]) % 3 !== 0) pc.push(smp[rg2[1]]);
+          pieces.push({ pts: pc, w: st.w, kind: st.kind });
+        });
+        inf.cross.forEach(function (c, ci) {
+          if (!sel[si][ci]) return;
+          if (!ranges.some(function (rg2) { return c.s - 2 >= rg2[0] && c.e + 2 <= rg2[1]; })) return;
+          var dp = [], mid = smp[(c.s + c.e) >> 1];
+          for (var z = Math.max(0, c.s - 2); z <= Math.min(n - 1, c.e + 2); z++) dp.push(smp[z]);
+          bridgesOut.push({ x: mid.x, y: mid.y, len: c.len, w: st.w, pts: dp, wood: woodStyle });
+        });
+      });
+
+      /* connexité : tout doit rejoindre la place du marché, soit directement, soit par une petite liaison sur la même rive */
+      pieces.forEach(function (pc) {
+        var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+        pc.pts.forEach(function (p) { if (p.x < x0) x0 = p.x; if (p.x > x1) x1 = p.x; if (p.y < y0) y0 = p.y; if (p.y > y1) y1 = p.y; });
+        pc.bb = [x0, y0, x1, y1];
+      });
+      var touch = function (A, B) {
+        if (A.bb[2] < B.bb[0] - 6 || B.bb[2] < A.bb[0] - 6 || A.bb[3] < B.bb[1] - 6 || B.bb[3] < A.bb[1] - 6) return false;
+        var z, w2, ends = [A.pts[0], A.pts[A.pts.length - 1]], endsB = [B.pts[0], B.pts[B.pts.length - 1]];
+        for (z = 0; z < 2; z++) {
+          for (w2 = 0; w2 < B.pts.length - 1; w2++) if (distSeg(ends[z].x, ends[z].y, B.pts[w2].x, B.pts[w2].y, B.pts[w2 + 1].x, B.pts[w2 + 1].y) < 6) return true;
+          for (w2 = 0; w2 < A.pts.length - 1; w2++) if (distSeg(endsB[z].x, endsB[z].y, A.pts[w2].x, A.pts[w2].y, A.pts[w2 + 1].x, A.pts[w2 + 1].y) < 6) return true;
+        }
+        for (z = 0; z < A.pts.length - 1; z++) for (w2 = 0; w2 < B.pts.length - 1; w2++) if (segInter(A.pts[z], A.pts[z + 1], B.pts[w2], B.pts[w2 + 1])) return true;
+        return false;
+      };
+      var NP = pieces.length, par = [], vNode = NP;
+      for (i = 0; i <= NP; i++) par.push(i);
+      var fnd = function (a) { while (par[a] !== a) { par[a] = par[par[a]]; a = par[a]; } return a; };
+      var uni = function (a, b) { a = fnd(a); b = fnd(b); if (a !== b) par[a] = b; };
+      var Pdist = layout === 'bastide' ? Math.max(gx, gy) * 0.9 : mr + 8;
+      pieces.forEach(function (pc, ix) {
+        var nearP = pc.pts.some(function (p) { return Math.hypot(p.x - P.x, p.y - P.y) < Pdist; });
+        for (var zp = 0; zp < pc.pts.length - 1 && !nearP; zp++) nearP = distSeg(P.x, P.y, pc.pts[zp].x, pc.pts[zp].y, pc.pts[zp + 1].x, pc.pts[zp + 1].y) < Pdist;
+        if (nearP) uni(ix, vNode);
+      });
+      for (i = 0; i < NP; i++) for (j = i + 1; j < NP; j++) if (fnd(i) !== fnd(j) && touch(pieces[i], pieces[j])) uni(i, j);
+      var wallCross = function (a, b) {
+        if (!useWalls) return false;
+        for (var e2 = 0; e2 < N; e2++) if (segInter(a, b, verts[e2], verts[(e2 + 1) % N])) return true;
+        return false;
+      };
+      var mainRoot = fnd(vNode), comps = {};
+      pieces.forEach(function (pc, ix) { var r = fnd(ix); if (r !== mainRoot) (comps[r] = comps[r] || []).push(ix); });
+      var inMain = pieces.map(function (pc, ix) { return fnd(ix) === mainRoot; });
+      var dropped = {}, links = [];
+      Object.keys(comps).map(function (r) { return comps[r]; })
+        .sort(function (a, b) {
+          var la = 0, lb = 0;
+          a.forEach(function (ix) { la += pieces[ix].pts.length; }); b.forEach(function (ix) { lb += pieces[ix].pts.length; });
+          return lb - la;
+        })
+        .forEach(function (cm) {
+          var hasMain = cm.some(function (ix) { return pieces[ix].kind === 'main'; }), lim = hasMain ? 240 : 140, pairs = [];
+          cm.forEach(function (ix) {
+            [pieces[ix].pts[0], pieces[ix].pts[pieces[ix].pts.length - 1]].forEach(function (a) {
+              pieces.forEach(function (pm, mx) {
+                if (!inMain[mx]) return;
+                for (var z = 0; z < pm.pts.length; z += 2) {
+                  var d = Math.hypot(a.x - pm.pts[z].x, a.y - pm.pts[z].y);
+                  if (d < lim) pairs.push({ a: a, b: pm.pts[z], d: d });
+                }
+              });
+            });
+          });
+          pairs.sort(function (a, b) { return a.d - b.d; });
+          var done = false;
+          for (var pi = 0; pi < Math.min(pairs.length, 25) && !done; pi++) {
+            var pr = pairs[pi], ok = !wallCross(pr.a, pr.b), steps2 = Math.max(2, Math.ceil(pr.d / 3));
+            for (var z = 0; z <= steps2 && ok; z++) {
+              if (riverDist(pr.a.x + (pr.b.x - pr.a.x) * z / steps2, pr.a.y + (pr.b.y - pr.a.y) * z / steps2) < rw / 2 + 6) ok = false;
+            }
+            if (!ok) continue;
+            var cpts = pr.d > 20 ? wobblyLine(rs, pr.a, pr.b, pr.d * 0.06, Math.max(4, Math.round(pr.d / 10))) : [pr.a, pr.b];
+            links.push({ pts: cpts, w: 3.2, kind: 'minor' });
+            cm.forEach(function (ix) { inMain[ix] = true; });
+            done = true;
+          }
+          if (!done) cm.forEach(function (ix) { dropped[ix] = true; });
+        });
+      var finalPieces = [];
+      pieces.forEach(function (pc, ix) { if (!dropped[ix]) finalPieces.push({ pts: pc.pts, w: pc.w, kind: pc.kind }); });
+      links.forEach(function (l) { finalPieces.push(l); });
+      streets = finalPieces;
+      bridgesOut.forEach(function (b) {
+        var alive = streets.some(function (st) {
+          for (var z = 0; z < st.pts.length - 1; z++) if (distSeg(b.x, b.y, st.pts[z].x, st.pts[z].y, st.pts[z + 1].x, st.pts[z + 1].y) < 2) return true;
+          return false;
+        });
+        if (alive) bridgeList.push(b);
+      });
+    }
+    M.streets = streets;
+    var segs = [];
+    streets.forEach(function (s) {
+      for (var j2 = 0; j2 < s.pts.length - 1; j2++) {
+        var p = s.pts[j2], q = s.pts[j2 + 1];
+        segs.push({ ax: p.x, ay: p.y, bx: q.x, by: q.y, w: s.w, kind: s.kind, ang: Math.atan2(q.y - p.y, q.x - p.x) });
+      }
+    });
+
+    /* contour de la place */
+    M.market = [];
+    if (layout === 'bastide') {
+      M.market = [loc(mcell.i * gx, mcell.j * gy), loc((mcell.i + 1) * gx, mcell.j * gy), loc((mcell.i + 1) * gx, (mcell.j + 1) * gy), loc(mcell.i * gx, (mcell.j + 1) * gy)];
+      M.marketLabel = { x: P.x, y: P.y + 11 };
+    } else {
+      for (i = 0; i < 20; i++) {
+        var mA = i * TAU / 20, mrad = mr * (0.92 + rs() * 0.16);
+        M.market.push({ x: P.x + Math.cos(mA) * mrad, y: P.y + Math.sin(mA) * mrad });
+      }
+      M.marketLabel = { x: P.x, y: P.y + mr + 9 };
+    }
+
+    /* ponts et portes d'eau */
+    var bridges = bridgeList, waterGates = [];
+    if (river) {
+      if (useWalls) {
+        for (var e = 0; e < N; e++) {
+          var pa2 = verts[e], pb = verts[(e + 1) % N];
+          for (var l2 = 0; l2 < river.length - 1; l2++) {
+            var h2 = segInter(pa2, pb, river[l2], river[l2 + 1]);
+            if (h2 && !waterGates.some(function (g) { return Math.hypot(g.x - h2.x, g.y - h2.y) < 24; })) {
+              var el = Math.hypot(pb.x - pa2.x, pb.y - pa2.y);
+              var rang2 = Math.atan2(river[l2 + 1].y - river[l2].y, river[l2 + 1].x - river[l2].x);
+              var ex2 = (pb.x - pa2.x) / el, ey2 = (pb.y - pa2.y) / el;
+              var sinp = Math.max(0.3, Math.abs(ex2 * Math.sin(rang2) - ey2 * Math.cos(rang2)));
+              waterGates.push({ x: h2.x, y: h2.y, rang: rang2, ex: ex2, ey: ey2, off: (rw / 2 + 2) / sinp + 7, len: 8 / sinp + 8 });
+            }
+          }
+        }
+      }
+    }
+    M.bridges = bridges; M.waterGates = waterGates;
+
+    /* monuments */
+    var rh = sub('houses');
+    function clearOf(x, y) {
+      var m0 = 1e9;
+      for (var q0 = 0; q0 < segs.length; q0++) { var sg0 = segs[q0]; m0 = Math.min(m0, distSeg(x, y, sg0.ax, sg0.ay, sg0.bx, sg0.by) - sg0.w / 2); }
+      return m0;
+    }
+    function rot(o, lx, ly) { var c0 = Math.cos(o.ang), s0 = Math.sin(o.ang); return { x: o.x + lx * c0 - ly * s0, y: o.y + lx * s0 + ly * c0 }; }
+    function footClear(o) {
+      var m1 = 1e9, L0 = o.L, tl0 = L0 * 0.55, pts = [];
+      for (var ix = -2; ix <= 2; ix++) for (var iy = -1; iy <= 1; iy++) pts.push(rot(o, ix * L0 / 4, iy * 8));
+      for (var iy2 = -2; iy2 <= 2; iy2++) pts.push(rot(o, -L0 * 0.12, iy2 * tl0 / 4));
+      pts.forEach(function (pp) { m1 = Math.min(m1, clearOf(pp.x, pp.y)); });
+      return m1;
+    }
+    var yards = [];
+    function yardOK(y0, outside) {
+      var hw0 = y0.w / 2, hh0 = y0.h / 2;
+      for (var ix = -2; ix <= 2; ix++) for (var iy = -1; iy <= 1; iy++) {
+        var pp = rot(y0, ix * hw0 / 2, iy * hh0);
+        if (pp.x < 24 || pp.x > W - 24 || pp.y < 24 || pp.y > H - 24) return false;
+        if (clearOf(pp.x, pp.y) < 3.5) return false;
+        if (wet && riverDist(pp.x, pp.y) < rw / 2 + 9) return false;
+        var nn = nd(pp.x, pp.y);
+        if (outside ? nn < 1.1 : nn > 0.93) return false;
+        if (useWalls && wallDist(pp.x, pp.y) < 9) return false;
+        if (Math.hypot(pp.x - P.x, pp.y - P.y) < mr + 8) return false;
+        if (castle && Math.hypot(pp.x - castle.x, pp.y - castle.y) < castle.S * 0.72 + 15) return false;
+        if (bailli && Math.hypot(pp.x - bailli.x, pp.y - bailli.y) < bailli.S * 0.72 + 12) return false;
+        if (cath && !y0.isCath && Math.hypot(pp.x - cath.x, pp.y - cath.y) < 0) return false;
+        for (var yi = 0; yi < yards.length; yi++) if (Math.hypot(pp.x - yards[yi].x, pp.y - yards[yi].y) < Math.max(yards[yi].w, yards[yi].h) * 0.6) return false;
+      }
+      return true;
+    }
+    function cemeteryFor(c0) {
+      var L0 = c0.L, tl0 = L0 * 0.55, out = [];
+      if (layout === 'bastide') {
+        var cs0 = Math.cos(theta), sn0 = Math.sin(theta);
+        [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (dv) {
+          out.push({ x: c0.x + cs0 * dv[0] * gx - sn0 * dv[1] * gy, y: c0.y + sn0 * dv[0] * gx + cs0 * dv[1] * gy, w: gx - 14, h: gy - 14, ang: theta });
+        });
+      } else {
+        var cw = L0 * 0.9, ch = L0 * 0.55;
+        [1, -1].forEach(function (sg1) { out.push(Object.assign(rot(c0, 0, sg1 * (tl0 / 2 + 4 + ch / 2)), { w: cw, h: ch, ang: c0.ang })); });
+        [1, -1].forEach(function (sg1) { out.push(Object.assign(rot(c0, sg1 * (L0 / 2 + 4 + ch / 2), 0), { w: ch, h: cw * 0.8, ang: c0.ang })); });
+      }
+      for (var oi = 0; oi < out.length; oi++) if (yardOK(out[oi], false) && !(c0.chk && c0.chk(out[oi]))) return out[oi];
+      return null;
+    }
+    /* bâtiment seigneurial : bourg = maison du bailli ou petit manoir ; ville = château ou manoir (+ parfois bailli) ; cité = château + toujours le bailli */
+    var lordRng = sub('lord'), lr0 = lordRng(), lr1 = lordRng();
+    var lordKind = sizeKey === 'bourg' ? (lr0 < 0.5 ? 'bailli' : 'manoir') : sizeKey === 'ville' ? (lr0 < 0.55 ? 'chateau' : 'manoir') : 'chateau';
+    var wantBailli = sizeKey === 'cite' ? true : sizeKey === 'ville' ? lr1 < 0.4 : false;
+    var castleS = lordKind === 'chateau' ? cfg.castle : lordKind === 'manoir' ? Math.round(cfg.castle * 0.52) : Math.round(cfg.castle * 0.4);
+    var bailS = Math.round(cfg.castle * 0.36);
+    var cath, castle, bailli = null, castleR = castleS * 0.72 + 12;
+    function dryAt(x, y, r) { return !wet || riverDist(x, y) > rw / 2 + r; }
+    if (layout === 'bastide') {
+      var cl = Math.min(cfg.cath, Math.min(gx, gy) - 16), cathCell = null;
+      [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (dc) {
+        if (cathCell) return;
+        var ci2 = mcell.i + dc[0], cj2 = mcell.j + dc[1];
+        if (gridXs.indexOf(ci2 * gx) < 0 || gridXs.indexOf((ci2 + 1) * gx) < 0 || gridYs.indexOf(cj2 * gy) < 0 || gridYs.indexOf((cj2 + 1) * gy) < 0) return;
+        var cc2 = loc((ci2 + 0.5) * gx, (cj2 + 0.5) * gy);
+        if (dryAt(cc2.x, cc2.y, cl * 0.6 + 6)) cathCell = cc2;
+      });
+      if (!cathCell) cathCell = loc((mcell.i + 1.5) * gx, (mcell.j + 0.5) * gy);
+      cath = { x: cathCell.x, y: cathCell.y, ang: theta, L: cl };
+      /* le château occupe le centre d'un îlot d'angle, entre les rues de la trame */
+      var gxs = gridXs.slice().sort(function (p, q) { return p - q; }), gys = gridYs.slice().sort(function (p, q) { return p - q; });
+      function nearCell(avoidPts) {
+        var found = null, ds = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1], [2, 0], [-2, 0], [0, 2], [0, -2]];
+        ds.forEach(function (dc) {
+          if (found) return;
+          var ci3 = mcell.i + dc[0], cj3 = mcell.j + dc[1];
+          if (gridXs.indexOf(ci3 * gx) < 0 || gridXs.indexOf((ci3 + 1) * gx) < 0 || gridYs.indexOf(cj3 * gy) < 0 || gridYs.indexOf((cj3 + 1) * gy) < 0) return;
+          var c3 = loc((ci3 + 0.5) * gx, (cj3 + 0.5) * gy);
+          if (!dryAt(c3.x, c3.y, 14)) return;
+          if (avoidPts.some(function (o) { return o && Math.hypot(o.x - c3.x, o.y - c3.y) < Math.min(gx, gy) * 0.6; })) return;
+          found = c3;
+        });
+        return found;
+      }
+      var bestC = null, bestRd = -1e9;
+      [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(function (sg2) {
+        var cxl = sg2[0] > 0 ? (gxs[gxs.length - 1] + gxs[gxs.length - 2]) / 2 : (gxs[0] + gxs[1]) / 2;
+        var cyl = sg2[1] > 0 ? (gys[gys.length - 1] + gys[gys.length - 2]) / 2 : (gys[0] + gys[1]) / 2;
+        var cpos = loc(cxl, cyl);
+        var rd = wet ? riverDist(cpos.x, cpos.y) : rh() * 100;
+        if (rd > bestRd) { bestRd = rd; bestC = cpos; }
+      });
+      castle = { x: bestC.x, y: bestC.y, ang: theta, S: Math.min(castleS, Math.min(gx, gy) - 16), type: lordKind };
+      if (lordKind === 'bailli') {
+        var bc0 = nearCell([cath]);
+        if (bc0) castle = { x: bc0.x, y: bc0.y, ang: theta, S: Math.min(castleS, Math.min(gx, gy) - 16), type: 'bailli' };
+      }
+      if (wantBailli) {
+        var bc1 = nearCell([cath, castle]);
+        if (bc1) bailli = { x: bc1.x, y: bc1.y, ang: theta, S: Math.min(bailS, Math.min(gx, gy) - 16), type: 'bailli' };
+      }
+    } else {
+      var gAng = gateIdx.map(function (gi) { return verts[gi].a; }).sort(function (a, b) { return a - b; });
+      var gaps = gAng.map(function (a, ix) {
+        var b = ix + 1 < gAng.length ? gAng[ix + 1] : gAng[0] + TAU;
+        return { mid: (a + b) / 2 };
+      });
+      var cathGap = Math.floor(rh() * gaps.length);
+      var cathA0 = gaps[cathGap].mid, cathD = mr + 30, cathPos = null;
+      for (var ct = 0; ct < 12 && !cathPos; ct++) {
+        var ca2 = cathA0 + ct * 0.5236;
+        var kx = P.x + Math.cos(ca2) * cathD, ky = P.y + Math.sin(ca2) * cathD;
+        if (nd(kx, ky) < 0.8 && dryAt(kx, ky, cfg.cath * 0.5 + 8)) cathPos = { x: kx, y: ky, a: ca2 };
+      }
+      if (!cathPos) cathPos = { x: P.x + Math.cos(cathA0) * cathD, y: P.y + Math.sin(cathA0) * cathD, a: cathA0 };
+      cath = { x: cathPos.x, y: cathPos.y, ang: cathPos.a + Math.PI / 2, L: cfg.cath };
+      /* l'édifice ne doit jamais empiéter sur une voie : on cherche un emplacement dégagé, longeant une artère, orienté parallèlement à elle */
+      var bestK = null, bestKs = 1e9, Lc = cfg.cath;
+      for (var kd = mr + 20; kd <= mr + 130; kd += 9) {
+        for (var kk = 0; kk < 24; kk++) {
+          var ka = cathA0 + (kk % 2 ? 1 : -1) * Math.ceil(kk / 2) * 0.2618;
+          var kx2 = P.x + Math.cos(ka) * kd, ky2 = P.y + Math.sin(ka) * kd;
+          if (nd(kx2, ky2) > 0.8 || !dryAt(kx2, ky2, Lc * 0.5 + 10)) continue;
+          var kn = nearestSeg(segs, kx2, ky2);
+          if (!kn.seg) continue;
+          var kang = kn.seg.ang, kyard = { x: kx2, y: ky2, ang: kang, L: Lc };
+          if (footClear(kyard) < 4) continue;
+          var nm = 1e9;
+          for (var ks = 0; ks < segs.length; ks++) {
+            var sg = segs[ks];
+            if (sg.kind !== 'main' && !(sg.kind === 'ring' && sg.w >= 5)) continue;
+            nm = Math.min(nm, distSeg(kx2, ky2, sg.ax, sg.ay, sg.bx, sg.by) - sg.w / 2);
+          }
+          var sc3 = Math.abs(nm - (Lc * 0.4 + 12)) + kd * 0.12 + (cemeteryFor(kyard) ? 0 : 18) + rh() * 4;
+          if (sc3 < bestKs) { bestKs = sc3; bestK = kyard; }
+        }
+      }
+      if (bestK) cath = bestK;
+      var cands2 = gaps.map(function (g, gi) { return { a: g.mid, pref: gi === cathGap ? 0 : 1 }; });
+      for (var cq = 0; cq < 36; cq++) cands2.push({ a: cq * TAU / 36 + rh() * 0.1, pref: 0 });
+      var bestCs = null, bestSc = -1e9;
+      function castleClear(px, py) { return clearOf(px, py) - castleS * 0.6; }
+      cands2.forEach(function (cd2) {
+        [0.9, 0.84, 0.78, 0.72, 0.65, 0.55, 0.47, 0.4].forEach(function (fr, fi) {
+          var d = fr * extf(cd2.a) - castleR;
+          var px = C.x + Math.cos(cd2.a) * d, py = C.y + Math.sin(cd2.a) * d;
+          var rdist = wet ? riverDist(px, py) - (rw / 2 + castleR) : 60;
+          var dcat = Math.hypot(px - cath.x, py - cath.y) - (castleR + cath.L * 0.5);
+          var cc = castleClear(px, py);
+          var sc = (rdist >= 0 && dcat >= 0 && cc >= 2) ? 1000 + cd2.pref * 20 - fi * 8 + rh() * 30 : -1000 + Math.min(rdist, 0) * 5 + Math.min(dcat, 0) * 5 + Math.min(cc, 2) * 20;
+          if (sc > bestSc) { bestSc = sc; bestCs = { x: px, y: py, a: cd2.a }; }
+        });
+      });
+      castle = { x: bestCs.x, y: bestCs.y, ang: bestCs.a + Math.PI / 2, S: castleS, type: lordKind };
+      /* emplacement logique des édifices plus modestes : le long d'une voie, jamais dessus */
+      function findSpot(S, kdMin, kdMax, ndMax, avoid, wk) {
+        var best = null, bs = 1e9, rr = S * 0.62 + 2;
+        for (var kd = kdMin; kd <= kdMax; kd += 7) for (var kk = 0; kk < 36; kk++) {
+          var ka = kk * TAU / 36 + lordRng() * 0.1;
+          var x = P.x + Math.cos(ka) * kd, y = P.y + Math.sin(ka) * kd;
+          if (nd(x, y) > ndMax || !dryAt(x, y, rr + 4)) continue;
+          var cc = clearOf(x, y) - rr;
+          if (cc < 1) continue;
+          var bad = false;
+          avoid.forEach(function (o) { if (o && Math.hypot(x - o.x, y - o.y) < o.r + rr + 4) bad = true; });
+          if (bad) continue;
+          var kn = nearestSeg(segs, x, y);
+          if (!kn.seg) continue;
+          var sc = Math.abs(cc - 5) + kd * wk + lordRng() * 3;
+          if (sc < bs) { bs = sc; best = { x: x, y: y, ang: kn.seg.ang }; }
+        }
+        return best;
+      }
+      var avCath = { x: cath.x, y: cath.y, r: cath.L * 0.5 + 4 };
+      if (lordKind === 'chateau' && bestSc < 0) {
+        var spc = findSpot(castleS * 1.1, mr + 40, 1.0 * R, 0.98, [avCath], -0.08);
+        if (spc) castle = { x: spc.x, y: spc.y, ang: spc.ang, S: castleS, type: 'chateau' };
+      }
+      if (lordKind === 'manoir') {
+        var sp = findSpot(castleS, mr + 50, 0.8 * R, 0.85, [avCath], -0.06);
+        if (sp) castle = { x: sp.x, y: sp.y, ang: sp.ang, S: castleS, type: 'manoir' };
+      } else if (lordKind === 'bailli') {
+        var sp0 = findSpot(castleS, mr + 14, mr + 90, 0.8, [avCath], 0.12);
+        if (sp0) castle = { x: sp0.x, y: sp0.y, ang: sp0.ang, S: castleS, type: 'bailli' };
+      }
+      if (wantBailli) {
+        var sp2 = findSpot(bailS, mr + 14, mr + 100, 0.8, [avCath, { x: castle.x, y: castle.y, r: castle.S * 0.72 + 6 }], 0.12);
+        if (sp2) bailli = { x: sp2.x, y: sp2.y, ang: sp2.ang, S: bailS, type: 'bailli' };
+      }
+    }
+    M.cath = cath; M.castle = castle; M.bailli = bailli;
+    /* cimetières : un près de la cathédrale, et parfois quelques-uns hors les murs avec leur chapelle */
+    var ry = sub('yards');
+    var cy0 = cemeteryFor(cath);
+    if (cy0 && (sizeKey !== 'bourg' || ry() < 0.8)) { cy0.isCath = true; cy0.chapel = false; yards.push(cy0); }
+    var nOut = Math.floor(ry() * ({ bourg: 1, ville: 2, cite: 3 }[sizeKey] + 1.4));
+    for (var yo = 0; yo < nOut; yo++) {
+      for (var ya = 0; ya < 60; ya++) {
+        var yang = ry() * TAU, yd = extf(yang) * (1.14 + ry() * 0.3);
+        var yx = C.x + Math.cos(yang) * yd, yy = C.y + Math.sin(yang) * yd;
+        var yn = nearestSeg(segs, yx, yy);
+        if (!yn.seg || yn.d - yn.seg.w / 2 > 70) continue;
+        var yo2 = { x: yx, y: yy, w: 30 + ry() * 8, h: 20 + ry() * 6, ang: yn.seg.ang, chapel: true, flip: ry() < 0.5 };
+        if (yardOK(yo2, true)) { yards.push(yo2); break; }
+      }
+    }
+    /* contour irrégulier quand le terrain s'y prête (pas dans la trame régulière d'une bastide) */
+    var rsh = sub('yardshape');
+    yards.forEach(function (y1) {
+      y1.shape = null;
+      if (layout === 'bastide' || rsh() > (y1.isCath ? 0.6 : 0.85)) return;
+      var hw = y1.w / 2, hh = y1.h / 2, d0 = Math.min(y1.w, y1.h) * 0.2, sh = [];
+      function j() { return rsh() * d0; }
+      sh.push([-hw + j(), -hh + j()]);
+      if (rsh() < 0.7) sh.push([(rsh() - 0.5) * y1.w * 0.4, -hh + (rsh() < 0.5 ? 0 : 1) * rsh() * d0 * 0.9]);
+      sh.push([hw - j(), -hh + j()]);
+      sh.push([hw, (rsh() - 0.5) * hh * 0.4]);
+      sh.push([hw - j(), hh - j()]);
+      if (rsh() < 0.7) sh.push([(rsh() - 0.5) * y1.w * 0.4, hh - (rsh() < 0.5 ? 0 : 1) * rsh() * d0 * 0.9]);
+      sh.push([-hw + j(), hh - j()]);
+      sh.push([-hw, (rsh() - 0.5) * hh * 0.4]);
+      y1.shape = sh;
+    });
+    M.yards = yards;
+    var excl = [
+      { x: P.x, y: P.y, r: layout === 'bastide' ? Math.hypot(gx, gy) / 2 + 2 : mr + 6 },
+      { x: cath.x, y: cath.y, r: cath.L * 0.5 + 6 },
+      { x: castle.x, y: castle.y, r: castle.S * 0.72 + 12 }
+    ];
+    if (bailli) excl.push({ x: bailli.x, y: bailli.y, r: bailli.S * 0.72 + 8 });
+    yards.forEach(function (y1) { excl.push({ x: y1.x, y: y1.y, r: Math.hypot(y1.w, y1.h) / 2 + 3 }); });
+    if (harbor) harbor.ex.forEach(function (e0) { excl.push(e0); });
+
+    /* maisons */
+    var houses = [], HH = {}, cell = 26;
+    function hkey(cx, cy) { return cx * 1000 + cy; }
+    function hAdd(h) { var k = hkey(Math.floor(h.x / cell), Math.floor(h.y / cell)); (HH[k] || (HH[k] = [])).push(h); }
+    function hHit(x, y, r) {
+      var cx = Math.floor(x / cell), cy = Math.floor(y / cell);
+      for (var i = -1; i <= 1; i++) for (var j = -1; j <= 1; j++) {
+        var arr = HH[hkey(cx + i, cy + j)];
+        if (arr) for (var q = 0; q < arr.length; q++) if (Math.hypot(arr[q].x - x, arr[q].y - y) < arr[q].r + r) return true;
+      }
+      return false;
+    }
+    var step = 5, ext = 1.34 * Rmax, cand = [];
+    for (var cy = C.y - ext; cy <= C.y + ext; cy += step)
+      for (var cx = C.x - ext; cx <= C.x + ext; cx += step)
+        cand.push({ x: cx + (rh() - 0.5) * step * 1.1, y: cy + (rh() - 0.5) * step * 1.1 });
+    shuffle(cand, rh);
+    var toneBag = [0, 0, 1, 1, 2, 3];
+    for (var ci = 0; ci < cand.length && houses.length < 2400; ci++) {
+      var x = cand[ci].x, y = cand[ci].y;
+      if (x < 16 || x > W - 16 || y < 16 || y > H - 16) continue;
+      var n = nd(x, y);
+      if (n > 1.34) continue;
+      var p;
+      if (useWalls) {
+        if (n < 0.95) p = 1; else if (n < 1.05) continue; else p = 0.55 * (1 - (n - 1.05) / 0.3);
+      } else {
+        p = n < 1 ? (n < 0.8 ? 1 : 1 - (n - 0.8) * 1.2) : 0.5 * (1 - (n - 1) / 0.34);
+      }
+      if (rh() > p) continue;
+      var hw = 10 + rh() * 8, hd = 8 + rh() * 5.5;
+      var ns = nearestSeg(segs, x, y);
+      var need = ns.seg.w / 2 + Math.max(hd / 2 + 1.4, Math.hypot(hw, hd) * 0.42);
+      if (ns.d < need || ns.d > need + (n <= 1 ? 40 : 20)) continue;
+      var bad = false;
+      for (var ei = 0; ei < excl.length; ei++) {
+        if (Math.hypot(x - excl[ei].x, y - excl[ei].y) < excl[ei].r + Math.hypot(hw, hd) * 0.4) { bad = true; break; }
+      }
+      if (bad) continue;
+      if (wet && riverDist(x, y) < rw / 2 + 6 + Math.hypot(hw, hd) / 2) continue;
+      if (useWalls && wallDist(x, y) < 14) continue;
+      var rr2 = Math.max(hw, hd) * 0.42 + 1;
+      if (hHit(x, y, rr2)) continue;
+      var house = { x: x, y: y, w: hw, d: hd, ang: ns.seg.ang + (rh() - 0.5) * 0.1, tone: pick(rh, toneBag), r: rr2 };
+      houses.push(house); hAdd(house);
+    }
+    M.houses = houses;
+
+    /* champs */
+    var rf2 = sub('fields'), fph = [rf2() * TAU, rf2() * TAU];
+    var fp1 = rf2() * TAU, fp2 = rf2() * TAU, fp3 = rf2() * TAU, fp4 = rf2() * TAU;
+    function fnoise(x, y) {
+      return (Math.sin(x / 110 + fp1) + Math.sin(y / 90 + fp2) + Math.sin((x + y) / 140 + fp3) + 0.6 * Math.sin((x - y) / 70 + fp4)) / 3.6;
+    }
+    var fields = [];
+    for (var at = 0; at < 1800 && fields.length < 190; at++) {
+      var fx = rf2() * W, fy = rf2() * H;
+      var fw = 34 + rf2() * 46, fh = 24 + rf2() * 26;
+      if (nd(fx, fy) < 1.4) continue;
+      var dn = Math.hypot(fx - C.x, fy - C.y) / R;
+      if (rf2() > (dn <= 2.6 ? 0.95 : 0.3)) continue;
+      if (fnoise(fx, fy) > 0.2) continue;
+      var f = { x: fx, y: fy, w: fw, h: fh, ang: (Math.sin(fx / 260 + fph[0]) + Math.cos(fy / 210 + fph[1])) * 0.45, tone: Math.floor(rf2() * 3), dir: rf2() < 0.5 };
+      var rad2 = Math.hypot(fw, fh) / 2 + 6, clash = false;
+      for (var hi = 0; hi < houses.length; hi++) {
+        if (Math.hypot(houses[hi].x - fx, houses[hi].y - fy) < rad2) { clash = true; break; }
+      }
+      yards.forEach(function (y1) { if (Math.hypot(y1.x - fx, y1.y - fy) < rad2 + Math.hypot(y1.w, y1.h) / 2) clash = true; });
+      if (clash) continue;
+      if (fields.some(function (o) { return Math.hypot(o.x - f.x, o.y - f.y) < 100 && obbOverlap(o, f); })) continue;
+      fields.push(f);
+    }
+    M.fields = fields;
+
+    /* moulins */
+    var mills = [], rm = sub('mills');
+    var millPool = fields.filter(function (f) {
+      var d = Math.hypot(f.x - C.x, f.y - C.y) / R;
+      return d > 1.5 && d < 2.4 && f.x > 40 && f.x < W - 40 && f.y > 40 && f.y < H - 40 && (!wet || riverDist(f.x, f.y) > rw / 2 + 18);
+    });
+    shuffle(millPool, rm);
+    for (var mm = 0; mm < Math.min(cfg.mills, millPool.length); mm++) {
+      mills.push({ x: millPool[mm].x, y: millPool[mm].y, ang: rm() * TAU });
+    }
+    M.mills = mills;
+
+    /* forêts */
+    var rt = sub('trees'), trees = [];
+    var tp = [rt() * TAU, rt() * TAU, rt() * TAU, rt() * TAU];
+    function tnoise(x, y) {
+      return (Math.sin(x / 100 + tp[0]) + Math.sin(y / 85 + tp[1]) + Math.sin((x + y) / 130 + tp[2]) + 0.6 * Math.sin((x - y) / 65 + tp[3])) / 3.6;
+    }
+    for (var ty = 6; ty < H - 6; ty += 9) {
+      for (var tx = 6; tx < W - 6; tx += 9) {
+        var gx = tx + (rt() - 0.5) * 8, gy = ty + (rt() - 0.5) * 8;
+        if (tnoise(gx, gy) < 0.3) continue;
+        if (rt() < 0.15) continue;
+        if (nd(gx, gy) < 1.4) continue;
+        if (harbor && harbor.ex.some(function (e0) { return Math.hypot(e0.x - gx, e0.y - gy) < e0.r + 8; })) continue;
+        if (wet && riverDist(gx, gy) < rw / 2 + 7) continue;
+        var tn = nearestSeg(segs, gx, gy);
+        if (tn.d < tn.seg.w / 2 + 6) continue;
+        if (hHit(gx, gy, 6)) continue;
+        if (yards.some(function (y1) { return Math.hypot(y1.x - gx, y1.y - gy) < Math.hypot(y1.w, y1.h) / 2 + 8; })) continue;
+        var inField = false;
+        for (var fi = 0; fi < fields.length; fi++) {
+          if (Math.hypot(fields[fi].x - gx, fields[fi].y - gy) < 60 && inObb(fields[fi], gx, gy, 4)) { inField = true; break; }
+        }
+        if (inField) continue;
+        trees.push({ x: gx, y: gy, r: 3.6 + rt() * 3.2, con: rt() < 0.25 });
+      }
+    }
+    M.trees = trees;
+
+    /* herbes */
+    var rsp = sub('specks'), specks = [];
+    for (var s = 0; s < 320; s++) specks.push({ x: rsp() * W, y: rsp() * H, l: 2 + rsp() * 3 });
+    M.specks = specks;
+
+    /* nombres */
+    M.nGates = useWalls ? ng : 0;
+    M.nTowers = (useWalls ? N + 2 * ng + 2 * waterGates.length : 0) + 4;
+    M.nHouses = houses.length;
+    M.pop = Math.round(houses.length * 5.5 / 10) * 10;
+    return M;
+  }
+
+  /* ---------- couleurs ---------- */
+  var TOKENS = ['land', 'landdark', 'field0', 'field1', 'field2', 'furrow', 'forest', 'forest2', 'conifer', 'water', 'shore', 'waterhi', 'waterink',
+    'road', 'roadedge', 'roof0', 'roof1', 'roof2', 'roof3', 'houseedge', 'wall', 'walledge', 'stone', 'wood', 'sand', 'light', 'shadow', 'ink', 'paper'];
+  function readTokens() {
+    var cs = getComputedStyle(document.documentElement), tk = {};
+    TOKENS.forEach(function (n) { tk[n] = cs.getPropertyValue('--m-' + n).trim() || '#888'; });
+    return tk;
+  }
+
+  /* ---------- dessin ---------- */
+  function strokePoly(pts, close) {
+    ctx.beginPath();
+    for (var i = 0; i < pts.length; i++) { if (i) ctx.lineTo(pts[i].x, pts[i].y); else ctx.moveTo(pts[i].x, pts[i].y); }
+    if (close) ctx.closePath();
+  }
+  function label(text, x, y, size, tk, opts) {
+    opts = opts || {};
+    ctx.save();
+    ctx.font = (opts.font || ('italic 500 ' + size + 'px ' + BODY));
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    if (opts.rot) { ctx.translate(x, y); ctx.rotate(opts.rot); x = 0; y = 0; }
+    ctx.strokeStyle = opts.halo || tk.land; ctx.lineWidth = 3.5; ctx.strokeText(text, x, y);
+    ctx.fillStyle = opts.color || tk.ink; ctx.fillText(text, x, y);
+    ctx.restore();
+  }
+
+  function draw(M, tk) {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    var C = M.C, i, j;
+
+    ctx.fillStyle = tk.land; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = tk.landdark; ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    M.specks.forEach(function (s) { ctx.moveTo(s.x, s.y); ctx.lineTo(s.x + s.l, s.y - s.l * 0.6); ctx.moveTo(s.x + 1.5, s.y); ctx.lineTo(s.x + 1.5 + s.l * 0.6, s.y - s.l); });
+    ctx.stroke(); ctx.globalAlpha = 1;
+
+    /* champs */
+    M.fields.forEach(function (f) {
+      ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.ang);
+      ctx.fillStyle = tk['field' + f.tone];
+      ctx.fillRect(-f.w / 2 + 1.5, -f.h / 2 + 1.5, f.w - 3, f.h - 3);
+      ctx.strokeStyle = tk.furrow; ctx.globalAlpha = 0.5; ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      if (f.dir) { for (var x = -f.w / 2 + 4; x < f.w / 2 - 3; x += 3.6) { ctx.moveTo(x, -f.h / 2 + 1.5); ctx.lineTo(x, f.h / 2 - 1.5); } }
+      else { for (var y = -f.h / 2 + 4; y < f.h / 2 - 3; y += 3.6) { ctx.moveTo(-f.w / 2 + 1.5, y); ctx.lineTo(f.w / 2 - 1.5, y); } }
+      ctx.stroke(); ctx.restore();
+    });
+
+    /* arbres */
+    ctx.fillStyle = tk.shadow; ctx.globalAlpha = 0.22;
+    ctx.beginPath();
+    M.trees.forEach(function (t) { ctx.moveTo(t.x + 2 + t.r, t.y + 2.5); ctx.arc(t.x + 2, t.y + 2.5, t.r, 0, TAU); });
+    ctx.fill(); ctx.globalAlpha = 1;
+    M.trees.forEach(function (t) {
+      if (t.con) {
+        ctx.fillStyle = tk.conifer;
+        ctx.beginPath(); ctx.moveTo(t.x, t.y - t.r * 1.15); ctx.lineTo(t.x + t.r * 0.85, t.y + t.r * 0.8); ctx.lineTo(t.x - t.r * 0.85, t.y + t.r * 0.8); ctx.closePath(); ctx.fill();
+      } else {
+        ctx.fillStyle = tk.forest; ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, TAU); ctx.fill();
+        ctx.fillStyle = tk.forest2; ctx.beginPath(); ctx.arc(t.x - t.r * 0.3, t.y - t.r * 0.3, t.r * 0.55, 0, TAU); ctx.fill();
+      }
+    });
+
+    /* plage : bande de sable le long du littoral */
+    if (M.sea) {
+      strokePoly(M.sea.edge); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.strokeStyle = tk.sand; ctx.lineWidth = (M.harbor && M.harbor.beach) ? 34 : 24; ctx.stroke();
+      ctx.strokeStyle = tk.landdark; ctx.globalAlpha = 0.35; ctx.lineWidth = 1; ctx.setLineDash([2, 6]);
+      var sandE = M.sea.edge.map(function (p) { return { x: p.x - p.nx * ((M.harbor && M.harbor.beach) ? 11 : 8), y: p.y - p.ny * ((M.harbor && M.harbor.beach) ? 11 : 8) }; });
+      strokePoly(sandE); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    }
+
+    /* rivière */
+    if (M.river) {
+      strokePoly(M.river); ctx.strokeStyle = tk.shore; ctx.lineWidth = M.rw + 5; ctx.stroke();
+      ctx.strokeStyle = tk.water; ctx.lineWidth = M.rw; ctx.stroke();
+      ctx.strokeStyle = tk.waterhi; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.setLineDash([10, 22]); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha = 1;
+    }
+
+    /* mer */
+    if (M.sea) {
+      var se0 = M.sea.edge;
+      ctx.beginPath();
+      se0.forEach(function (p, i) { if (i) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); });
+      M.sea.far.forEach(function (p) { ctx.lineTo(p.x, p.y); });
+      ctx.closePath(); ctx.fillStyle = tk.water; ctx.fill();
+      [14, 34, 66, 110].forEach(function (off, oi) {
+        strokePoly(se0.map(function (p) { return { x: p.x + p.nx * off, y: p.y + p.ny * off }; }));
+        ctx.strokeStyle = tk.waterhi; ctx.globalAlpha = 0.5 - oi * 0.08; ctx.lineWidth = 1.3; ctx.setLineDash([12 + oi * 4, 20 + oi * 8]); ctx.lineDashOffset = oi * 9; ctx.stroke();
+      });
+      ctx.setLineDash([]); ctx.globalAlpha = 1;
+      strokePoly(se0); ctx.strokeStyle = tk.shore; ctx.lineWidth = 3; ctx.stroke();
+      ctx.strokeStyle = tk.waterhi; ctx.globalAlpha = 0.75; ctx.lineWidth = 2; ctx.setLineDash([5, 7]);
+      strokePoly(se0.map(function (p) { return { x: p.x + p.nx * 4, y: p.y + p.ny * 4 }; })); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha = 1;
+    }
+
+    /* rues */
+    M.streets.forEach(function (s) { strokePoly(s.pts); ctx.strokeStyle = tk.roadedge; ctx.lineWidth = s.w + 2.2; ctx.stroke(); });
+    M.streets.forEach(function (s) { strokePoly(s.pts); ctx.strokeStyle = tk.road; ctx.lineWidth = s.w; ctx.stroke(); });
+
+    /* place du marché */
+    strokePoly(M.market, true); ctx.fillStyle = tk.road; ctx.fill(); ctx.strokeStyle = tk.roadedge; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.fillStyle = tk.stone; ctx.strokeStyle = tk.walledge; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(M.P.x, M.P.y, 4, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = tk.water; ctx.beginPath(); ctx.arc(M.P.x, M.P.y, 2, 0, TAU); ctx.fill();
+
+    /* ponts : le tablier suit exactement le tracé de la route */
+    M.bridges.forEach(function (b) {
+      var bw = b.w + 3, pts = b.pts, n = pts.length, q;
+      function offs(d) {
+        var o = [];
+        for (var z = 0; z < n; z++) {
+          var p0 = pts[Math.max(0, z - 1)], p1 = pts[Math.min(n - 1, z + 1)];
+          var tx = p1.x - p0.x, ty = p1.y - p0.y, tl = Math.hypot(tx, ty) || 1;
+          o.push({ x: pts[z].x - ty / tl * d, y: pts[z].y + tx / tl * d });
+        }
+        return o;
+      }
+      ctx.lineCap = 'butt';
+      strokePoly(pts); ctx.strokeStyle = b.wood ? tk.houseedge : tk.walledge; ctx.lineWidth = bw + 2.4; ctx.stroke();
+      strokePoly(pts); ctx.strokeStyle = b.wood ? tk.wood : tk.stone; ctx.lineWidth = bw; ctx.stroke();
+      ctx.strokeStyle = b.wood ? tk.houseedge : tk.walledge;
+      if (b.wood) {
+        ctx.globalAlpha = 0.5; ctx.lineWidth = 0.8; ctx.beginPath();
+        for (q = 1; q < n - 1; q += 2) {
+          var tx = pts[q + 1].x - pts[q - 1].x, ty = pts[q + 1].y - pts[q - 1].y, tl = Math.hypot(tx, ty) || 1;
+          ctx.moveTo(pts[q].x - ty / tl * bw * 0.42, pts[q].y + tx / tl * bw * 0.42);
+          ctx.lineTo(pts[q].x + ty / tl * bw * 0.42, pts[q].y - tx / tl * bw * 0.42);
+        }
+        ctx.stroke(); ctx.globalAlpha = 1;
+      } else {
+        ctx.lineWidth = 1.1;
+        strokePoly(offs(bw / 2 - 0.4)); ctx.stroke();
+        strokePoly(offs(-(bw / 2 - 0.4))); ctx.stroke();
+      }
+      ctx.lineCap = 'round';
+    });
+
+    /* port */
+    if (M.harbor) {
+      var Hb = M.harbor, SP = M.seaPt;
+      var band = function (a, b, w, fill, edge, planks) {
+        var dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l, h = w / 2;
+        ctx.beginPath();
+        ctx.moveTo(a.x + nx * h, a.y + ny * h); ctx.lineTo(b.x + nx * h, b.y + ny * h); ctx.lineTo(b.x - nx * h, b.y - ny * h); ctx.lineTo(a.x - nx * h, a.y - ny * h); ctx.closePath();
+        ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = edge; ctx.lineWidth = 1.2; ctx.stroke();
+        if (planks) {
+          ctx.beginPath();
+          for (var t = 3; t < l - 1; t += 4.2) { var px = a.x + dx / l * t, py = a.y + dy / l * t; ctx.moveTo(px + nx * h, py + ny * h); ctx.lineTo(px - nx * h, py - ny * h); }
+          ctx.strokeStyle = edge; ctx.globalAlpha = 0.45; ctx.lineWidth = 0.6; ctx.stroke(); ctx.globalAlpha = 1;
+        }
+      };
+      var quayStrip = function (q, fill, planks) {
+        var pts = [], pts2 = [];
+        for (var sv = q.s0; sv <= q.s1 + 0.1; sv += 8) { pts.push(SP(sv, q.to)); pts2.push(SP(sv, q.from)); }
+        ctx.beginPath();
+        pts.forEach(function (p, i) { if (i) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); });
+        for (var z = pts2.length - 1; z >= 0; z--) ctx.lineTo(pts2[z].x, pts2[z].y);
+        ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 1.3; ctx.stroke();
+        if (planks) {
+          ctx.beginPath();
+          for (var sv2 = q.s0 + 3; sv2 < q.s1; sv2 += 4.5) { var a = SP(sv2, q.to), b = SP(sv2, q.from); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); }
+          ctx.strokeStyle = tk.houseedge; ctx.globalAlpha = 0.4; ctx.lineWidth = 0.6; ctx.stroke(); ctx.globalAlpha = 1;
+        }
+      };
+      var hull = function (x, y, ang, len, w, fill) {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+        ctx.fillStyle = tk.shadow; ctx.globalAlpha = 0.25; ctx.beginPath(); ctx.ellipse(1.5, 2, len / 2, w / 2, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.moveTo(len / 2, 0); ctx.quadraticCurveTo(len * 0.32, w / 2, len * 0.05, w / 2); ctx.lineTo(-len / 2 + 1.5, w * 0.42); ctx.lineTo(-len / 2, 0); ctx.lineTo(-len / 2 + 1.5, -w * 0.42); ctx.lineTo(len * 0.05, -w / 2); ctx.quadraticCurveTo(len * 0.32, -w / 2, len / 2, 0); ctx.closePath();
+        ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 1.1; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(len / 2 - 2, 0); ctx.lineTo(-len / 2 + 2, 0); ctx.lineWidth = 0.7; ctx.stroke();
+        ctx.restore();
+      };
+      if (Hb.quay2) quayStrip(Hb.quay2, tk.wood, true);
+      if (Hb.quay) quayStrip(Hb.quay, Hb.quay.stone ? tk.stone : tk.wood, !Hb.quay.stone);
+      if (Hb.quay && Hb.quay.stone) {
+        ctx.beginPath();
+        for (var sv3 = Hb.quay.s0 + 6; sv3 < Hb.quay.s1; sv3 += 9) { var qa = SP(sv3, Hb.quay.to), qb = SP(sv3, Hb.quay.to - 5); ctx.moveTo(qa.x, qa.y); ctx.lineTo(qb.x, qb.y); }
+        ctx.strokeStyle = tk.walledge; ctx.globalAlpha = 0.5; ctx.lineWidth = 0.8; ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      band(Hb.stub[0], Hb.stub[1], 6.5, tk.road, tk.roadedge, false);
+      Hb.jetties.forEach(function (j) {
+        var a = SP(j.s, j.from), b = SP(j.s, j.to);
+        band(a, b, j.w, j.stone ? tk.stone : tk.wood, j.stone ? tk.walledge : tk.houseedge, !j.stone);
+        ctx.fillStyle = tk.houseedge;
+        for (var pz = j.from + 6; pz < j.to; pz += 9) { [-1, 1].forEach(function (sg) { var pp = SP(j.s, pz); ctx.beginPath(); ctx.arc(pp.x - pp.ny * sg * (j.w / 2), pp.y + pp.nx * sg * (j.w / 2), 0.9, 0, TAU); ctx.fill(); }); }
+      });
+      Hb.slips.forEach(function (sl) {
+        var b = SP(sl.s, 18), ang0 = Math.atan2(b.ny, b.nx), hc = SP(sl.s, -6), shd = SP(sl.s, -50);
+        band(SP(sl.s, -30), SP(sl.s, 16), 17, tk.wood, tk.houseedge, true);
+        ctx.save(); ctx.translate(hc.x, hc.y); ctx.rotate(ang0);
+        ctx.beginPath(); ctx.moveTo(24, 0); ctx.quadraticCurveTo(14, 7, 4, 7); ctx.lineTo(-20, 5.5); ctx.lineTo(-20, -5.5); ctx.lineTo(4, -7); ctx.quadraticCurveTo(14, -7, 24, 0);
+        ctx.fillStyle = tk.roof2; ctx.globalAlpha = 0.55; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 1.1; ctx.stroke();
+        ctx.beginPath(); for (var rb = -16; rb <= 18; rb += 5) { ctx.moveTo(rb, -6); ctx.lineTo(rb, 6); }
+        ctx.lineWidth = 0.8; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-8, -11); ctx.lineTo(18, -11); ctx.moveTo(-8, 11); ctx.lineTo(18, 11); ctx.lineWidth = 1; ctx.stroke();
+        ctx.restore();
+        ctx.save(); ctx.translate(shd.x, shd.y); ctx.rotate(ang0);
+        ctx.fillStyle = tk.shadow; ctx.globalAlpha = 0.25; ctx.fillRect(-13, -9.5, 28, 20); ctx.globalAlpha = 1;
+        ctx.fillStyle = tk.roof0; ctx.fillRect(-14, -10, 28, 20); ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 1.3; ctx.strokeRect(-14, -10, 28, 20);
+        ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(14, 0); ctx.lineWidth = 0.9; ctx.stroke();
+        ctx.restore();
+      });
+      Hb.boats.forEach(function (b) { hull(b.x, b.y, b.ang, b.len, b.len * 0.38, tk.wood); });
+      Hb.ships.forEach(function (sh2) {
+        hull(sh2.x, sh2.y, sh2.ang, sh2.len, sh2.w, sh2.big ? tk.roof1 : tk.roof2);
+        ctx.save(); ctx.translate(sh2.x, sh2.y); ctx.rotate(sh2.ang);
+        for (var m = 0; m < sh2.masts; m++) {
+          var mx = sh2.masts === 2 ? (m ? -sh2.len * 0.22 : sh2.len * 0.16) : 0;
+          ctx.fillStyle = tk.paper; ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 0.8;
+          ctx.fillRect(mx - 1.6, -sh2.w * 0.68, 3.2, sh2.w * 1.36); ctx.strokeRect(mx - 1.6, -sh2.w * 0.68, 3.2, sh2.w * 1.36);
+          ctx.beginPath(); ctx.arc(mx, 0, 1.3, 0, TAU); ctx.fillStyle = tk.houseedge; ctx.fill();
+        }
+        ctx.restore();
+      });
+      if (Hb.light) {
+        var l0 = SP(Hb.light.s, -8), l1 = SP(Hb.light.s, Hb.light.len);
+        band(l0, l1, 9, tk.stone, tk.walledge, false);
+        var beam = Math.atan2(l1.ny, l1.nx);
+        ctx.save(); ctx.translate(l1.x, l1.y); ctx.rotate(beam);
+        [-0.5, 0.5].forEach(function (da) {
+          ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(da - 0.16) * 62, Math.sin(da - 0.16) * 62); ctx.lineTo(Math.cos(da + 0.16) * 62, Math.sin(da + 0.16) * 62); ctx.closePath();
+          ctx.fillStyle = tk.light; ctx.globalAlpha = 0.2; ctx.fill(); ctx.globalAlpha = 1;
+        });
+        ctx.restore();
+        ctx.fillStyle = tk.stone; ctx.strokeStyle = tk.walledge; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(l1.x, l1.y, 7.5, 0, TAU); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = tk.roof3; ctx.beginPath(); ctx.arc(l1.x, l1.y, 4.4, 0, TAU); ctx.fill();
+        ctx.fillStyle = tk.light; ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.arc(l1.x, l1.y, 2.4, 0, TAU); ctx.fill(); ctx.stroke();
+      }
+    }
+
+    /* maisons */
+    M.houses.forEach(function (h) {
+      ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.ang);
+      ctx.fillStyle = tk.shadow; ctx.globalAlpha = 0.3; ctx.fillRect(-h.w / 2 + 2, -h.d / 2 + 2.5, h.w, h.d); ctx.globalAlpha = 1;
+      ctx.fillStyle = tk['roof' + h.tone]; ctx.fillRect(-h.w / 2, -h.d / 2, h.w, h.d);
+      ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fillRect(-h.w / 2, -h.d / 2, h.w, h.d / 2);
+      ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 0.8; ctx.strokeRect(-h.w / 2, -h.d / 2, h.w, h.d);
+      ctx.beginPath(); ctx.moveTo(-h.w / 2, 0); ctx.lineTo(h.w / 2, 0); ctx.stroke();
+      ctx.restore();
+    });
+
+    /* remparts */
+    if (M.useWalls) {
+      var vs = M.verts;
+      strokePoly(vs, true); ctx.strokeStyle = tk.walledge; ctx.lineWidth = 8; ctx.stroke();
+      ctx.strokeStyle = tk.wall; ctx.lineWidth = 5; ctx.stroke();
+      M.gateIdx.forEach(function (gi) {
+        var G = vs[gi], ang = G.gdir !== undefined ? G.gdir : Math.atan2(G.y - C.y, G.x - C.x);
+        ctx.save(); ctx.translate(G.x, G.y); ctx.rotate(ang);
+        ctx.fillStyle = tk.road; ctx.fillRect(-9, -5.5, 18, 11);
+        [-1, 1].forEach(function (sg) {
+          ctx.fillStyle = tk.wall; ctx.strokeStyle = tk.walledge; ctx.lineWidth = 1.8;
+          ctx.beginPath(); ctx.arc(0, sg * 12, 7.5, 0, TAU); ctx.fill(); ctx.stroke();
+        });
+        ctx.restore();
+      });
+      M.waterGates.forEach(function (g) {
+        ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(g.rang);
+        ctx.fillStyle = tk.water; ctx.fillRect(-g.len / 2, -M.rw / 2, g.len, M.rw);
+        ctx.restore();
+        [-1, 1].forEach(function (sg) {
+          var tx = g.x + g.ex * sg * g.off, ty = g.y + g.ey * sg * g.off;
+          ctx.fillStyle = tk.wall; ctx.strokeStyle = tk.walledge; ctx.lineWidth = 1.8;
+          ctx.beginPath(); ctx.arc(tx, ty, 6.5, 0, TAU); ctx.fill(); ctx.stroke();
+        });
+      });
+      for (i = 0; i < vs.length; i++) {
+        if (M.gateIdx.indexOf(i) >= 0) continue;
+        ctx.fillStyle = tk.wall; ctx.strokeStyle = tk.walledge; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.arc(vs[i].x, vs[i].y, vs[i].corner ? 7.5 : 5.5, 0, TAU); ctx.fill(); ctx.stroke();
+      }
+    }
+
+    /* cimetières */
+    M.yards.forEach(function (y1) {
+      ctx.save(); ctx.translate(y1.x, y1.y); ctx.rotate(y1.ang);
+      function ypath() {
+        ctx.beginPath();
+        if (y1.shape) { y1.shape.forEach(function (q, qi) { if (qi) ctx.lineTo(q[0], q[1]); else ctx.moveTo(q[0], q[1]); }); ctx.closePath(); }
+        else ctx.rect(-y1.w / 2, -y1.h / 2, y1.w, y1.h);
+      }
+      function yin(px, py) {
+        if (!y1.shape) return true;
+        var ins = false, sh2 = y1.shape;
+        for (var a = 0, b = sh2.length - 1; a < sh2.length; b = a++) {
+          if ((sh2[a][1] > py) !== (sh2[b][1] > py) && px < (sh2[b][0] - sh2[a][0]) * (py - sh2[a][1]) / (sh2[b][1] - sh2[a][1]) + sh2[a][0]) ins = !ins;
+        }
+        return ins;
+      }
+      ctx.fillStyle = tk.landdark; ctx.globalAlpha = 0.5; ypath(); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = tk.wall; ctx.lineWidth = 2.2; ctx.lineJoin = 'round'; ypath(); ctx.stroke();
+      if (!y1.shape) { ctx.strokeStyle = tk.walledge; ctx.lineWidth = 0.8; ctx.strokeRect(-y1.w / 2 - 1.1, -y1.h / 2 - 1.1, y1.w + 2.2, y1.h + 2.2); }
+      var gx0 = y1.chapel ? (y1.flip ? -1 : 1) : 0, x0 = -y1.w / 2 + 6, x1 = y1.w / 2 - 6;
+      if (y1.chapel) { if (y1.flip) x1 -= 14; else x0 += 14; }
+      ctx.fillStyle = tk.stone; ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 0.7;
+      for (var gyy = -y1.h / 2 + 5; gyy <= y1.h / 2 - 4; gyy += 6) {
+        for (var gxx = x0; gxx <= x1; gxx += 5.5) {
+          if (!yin(gxx - 3, gyy - 3) || !yin(gxx + 3, gyy + 3) || !yin(gxx - 3, gyy + 3) || !yin(gxx + 3, gyy - 3)) continue;
+          ctx.fillRect(gxx - 1.1, gyy - 1.6, 2.2, 3.2); ctx.strokeRect(gxx - 1.1, gyy - 1.6, 2.2, 3.2);
+        }
+      }
+      if (y1.chapel) {
+        var cxp = (y1.flip ? 1 : -1) * (y1.w / 2 - 9);
+        ctx.fillStyle = tk.shadow; ctx.globalAlpha = 0.3; ctx.fillRect(cxp - 5 + 1.5, -3.5 + 1.5, 10, 7); ctx.globalAlpha = 1;
+        ctx.fillStyle = tk.roof3; ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 1.2;
+        ctx.fillRect(cxp - 5, -3.5, 10, 7); ctx.strokeRect(cxp - 5, -3.5, 10, 7);
+        ctx.beginPath(); ctx.moveTo(cxp - 5, 0); ctx.lineTo(cxp + 5, 0); ctx.stroke();
+      }
+      ctx.restore();
+    });
+
+    /* cathédrale */
+    var k = M.cath;
+    ctx.save(); ctx.translate(k.x, k.y); ctx.rotate(k.ang);
+    var nave = 13, tl = k.L * 0.55, tw = 11;
+    ctx.fillStyle = tk.shadow; ctx.globalAlpha = 0.3;
+    ctx.fillRect(-k.L / 2 + 3, -nave / 2 + 3, k.L, nave); ctx.fillRect(-k.L * 0.12 - tw / 2 + 3, -tl / 2 + 3, tw, tl);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = tk.stone; ctx.strokeStyle = tk.walledge; ctx.lineWidth = 1.6;
+    ctx.fillRect(-k.L / 2, -nave / 2, k.L, nave); ctx.fillRect(-k.L * 0.12 - tw / 2, -tl / 2, tw, tl);
+    ctx.fillRect(-k.L * 0.12 - tw / 2, -nave / 2, tw, nave);
+    ctx.strokeRect(-k.L / 2, -nave / 2, k.L, nave); ctx.strokeRect(-k.L * 0.12 - tw / 2, -tl / 2, tw, tl);
+    ctx.fillStyle = tk.stone; ctx.fillRect(-k.L * 0.12 - tw / 2 + 1, -nave / 2 + 1, tw - 2, nave - 2);
+    ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-k.L / 2 + 3, 0); ctx.lineTo(k.L / 2 - 3, 0); ctx.stroke();
+    ctx.fillStyle = tk.wall; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(-k.L / 2 + 6, 0, 6, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.restore();
+
+    /* château */
+    var q = M.castle, S = q.S;
+    function drawSmall(o, kind) {
+      var Z = o.S;
+      ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.ang);
+      if (kind === 'manoir') {
+        ctx.fillStyle = tk.shadow; ctx.globalAlpha = 0.3; ctx.fillRect(-Z / 2 + 2.5, -Z / 2 + 2.5, Z, Z); ctx.globalAlpha = 1;
+        ctx.fillStyle = tk.land; ctx.fillRect(-Z / 2, -Z / 2, Z, Z);
+        ctx.strokeStyle = tk.walledge; ctx.lineWidth = 2; ctx.strokeRect(-Z / 2, -Z / 2, Z, Z);
+        var bw2 = Z * 0.62, bh2 = Z * 0.34;
+        ctx.fillStyle = tk.roof1; ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 1.3;
+        ctx.fillRect(-bw2 / 2, -Z / 2 + 3, bw2, bh2); ctx.strokeRect(-bw2 / 2, -Z / 2 + 3, bw2, bh2);
+        ctx.beginPath(); ctx.moveTo(-bw2 / 2, -Z / 2 + 3 + bh2 / 2); ctx.lineTo(bw2 / 2, -Z / 2 + 3 + bh2 / 2); ctx.lineWidth = 0.9; ctx.stroke();
+        ctx.fillStyle = tk.wall; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(Z / 2, Z / 2, Z * 0.13, 0, TAU); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = tk.roof3; ctx.beginPath(); ctx.arc(Z / 2, Z / 2, Z * 0.055, 0, TAU); ctx.fill();
+      } else {
+        var hw2 = Z * 0.55, hh2 = Z * 0.38;
+        ctx.fillStyle = tk.shadow; ctx.globalAlpha = 0.3; ctx.fillRect(-hw2 + 2, -hh2 + 2, hw2 * 2, hh2 * 2); ctx.globalAlpha = 1;
+        ctx.fillStyle = tk.roof2; ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 1.5;
+        ctx.fillRect(-hw2, -hh2, hw2 * 2, hh2 * 2); ctx.strokeRect(-hw2, -hh2, hw2 * 2, hh2 * 2);
+        ctx.beginPath(); ctx.moveTo(-hw2, 0); ctx.lineTo(hw2, 0); ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = tk.walledge; ctx.lineWidth = 1.1; ctx.strokeRect(-hw2 - 3, -hh2 - 3, hw2 * 2 + 6, hh2 * 2 + 6);
+        ctx.fillStyle = tk.stone; ctx.fillRect(-2, hh2 - 1, 4, 4);
+      }
+      ctx.restore();
+    }
+    if (M.bailli) drawSmall(M.bailli, 'bailli');
+    if (q.type !== 'chateau') drawSmall(q, q.type);
+    else {
+    ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.ang);
+    ctx.fillStyle = tk.shadow; ctx.globalAlpha = 0.3; ctx.fillRect(-S / 2 + 3, -S / 2 + 3, S, S); ctx.globalAlpha = 1;
+    ctx.fillStyle = tk.stone; ctx.fillRect(-S / 2, -S / 2, S, S);
+    ctx.strokeStyle = tk.walledge; ctx.lineWidth = 2.4; ctx.strokeRect(-S / 2, -S / 2, S, S);
+    ctx.fillStyle = tk.road; var cy2 = S * 0.62; ctx.fillRect(-cy2 / 2, -cy2 / 2, cy2, cy2);
+    ctx.lineWidth = 1; ctx.strokeRect(-cy2 / 2, -cy2 / 2, cy2, cy2);
+    var kp = S * 0.3; ctx.fillStyle = tk.roof3; ctx.fillRect(-kp / 2, -kp / 2, kp, kp);
+    ctx.lineWidth = 1.4; ctx.strokeRect(-kp / 2, -kp / 2, kp, kp);
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(function (c) {
+      ctx.fillStyle = tk.wall; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.arc(c[0] * S / 2, c[1] * S / 2, S * 0.16, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = tk.roof3; ctx.beginPath(); ctx.arc(c[0] * S / 2, c[1] * S / 2, S * 0.07, 0, TAU); ctx.fill();
+    });
+    ctx.restore();
+    }
+
+    /* moulins */
+    M.mills.forEach(function (m) {
+      ctx.save(); ctx.translate(m.x, m.y);
+      ctx.fillStyle = tk.shadow; ctx.globalAlpha = 0.28; ctx.beginPath(); ctx.arc(2, 2.5, 4, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 1.7;
+      ctx.beginPath();
+      for (var b = 0; b < 4; b++) { var a = m.ang + b * Math.PI / 2; ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * 12, Math.sin(a) * 12); }
+      ctx.stroke();
+      ctx.fillStyle = tk.stone; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(0, 0, 3.6, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    });
+
+    /* noms sur la carte */
+    var cathName = M.sizeKey === 'bourg' ? 'Église' : 'Cathédrale';
+    label(cathName, k.x, k.y - Math.max(k.L * 0.3, 22) - 6, 14, tk);
+    label(q.type === 'chateau' ? 'Château' : q.type === 'manoir' ? 'Manoir' : 'Maison du bailli', q.x, q.y - S / 2 - (q.type === 'chateau' ? 16 : 11), q.type === 'chateau' ? 14 : 12, tk);
+    if (M.bailli) label('Bailli', M.bailli.x, M.bailli.y - M.bailli.S * 0.5 - 10, 12, tk);
+    label('Marché', M.marketLabel.x, M.marketLabel.y, 12, tk);
+    if (M.harbor) {
+      var Hh = M.harbor, SPt = M.seaPt;
+      if (Hh.size !== 'bourg') { var lp = SPt(Hh.sh, Hh.size === 'cite' ? 138 : 92); label('Port', lp.x, lp.y, 13, tk, { color: tk.waterink, halo: tk.water }); }
+      if (Hh.slips.length) { var lc = SPt(Hh.slips[0].s, -72); label('Chantier naval', lc.x, lc.y, 11, tk); }
+      if (Hh.light) { var ll = SPt(Hh.light.s, Hh.light.len + 20); label('Phare', ll.x, ll.y, 12, tk, { color: tk.waterink, halo: tk.water }); }
+      var sn = null, offs = [190, 150, 115, 85, 60];
+      for (var oo = 0; oo < offs.length && !sn; oo++) {
+        for (var so = 0; so < 5 && !sn; so++) {
+          var cand = SPt(Hh.sh + Hh.side * (-40 + so * -30 * Hh.side), offs[oo]);
+          if (cand.x > 90 && cand.x < W - 90 && cand.y > 60 && cand.y < H - 60) sn = cand;
+        }
+      }
+      if (!sn) sn = SPt(Hh.sh, 120);
+      var san = Math.atan2(-sn.nx, sn.ny);
+      if (san > Math.PI / 2) san -= Math.PI; if (san < -Math.PI / 2) san += Math.PI;
+      label(M.seaName.toUpperCase().split('').join(' '), sn.x, sn.y, 14, tk, { color: tk.waterink, halo: tk.water, rot: san, font: 'italic 500 14px ' + BODY });
+    }
+    if (M.river) {
+      var best = null;
+      for (i = 0; i < M.river.length - 1; i++) {
+        var p = M.river[i];
+        if (p.x < 150 || p.x > W - 150 || p.y < 110 || p.y > H - 110) continue;
+        if (Math.hypot(p.x - C.x, p.y - C.y) < M.Rmax * 1.25) continue;
+        if (M.seaD && M.seaD(p.x, p.y) > -60) continue;
+        best = i; break;
+      }
+      if (best === null) {
+        for (i = 0; i < M.river.length - 1; i++) {
+          var pp = M.river[i];
+          if (M.seaD && M.seaD(pp.x, pp.y) > -60) continue;
+          if (pp.x > 100 && pp.x < W - 100 && pp.y > 90 && pp.y < H - 90 && Math.hypot(pp.x - C.x, pp.y - C.y) > M.Rmax * 1.05) { best = i; break; }
+        }
+      }
+      if (best !== null) {
+        var r0 = M.river[best], r1 = M.river[best + 1];
+        var ra = Math.atan2(r1.y - r0.y, r1.x - r0.x);
+        if (ra > Math.PI / 2) ra -= Math.PI; if (ra < -Math.PI / 2) ra += Math.PI;
+        var txt = M.riverName.toUpperCase().split('').join(' ');
+        label(txt, r0.x, r0.y, 13, tk, { color: tk.waterink, halo: tk.water, rot: ra, font: 'italic 500 13px ' + BODY });
+      }
+    }
+
+    /* cartouche */
+    ctx.font = '40px ' + DISPLAY;
+    var nameW = ctx.measureText(M.name).width;
+    var sub = 'Plan levé en l’an de grâce ' + roman(M.year);
+    ctx.font = 'italic 500 14px ' + BODY;
+    var subW = ctx.measureText(sub).width;
+    var bw = Math.max(nameW, subW) + 40, bh = 82;
+    ctx.fillStyle = tk.paper; ctx.globalAlpha = 0.94; ctx.fillRect(26, 26, bw, bh); ctx.globalAlpha = 1;
+    ctx.strokeStyle = tk.ink; ctx.lineWidth = 1.6; ctx.strokeRect(26, 26, bw, bh);
+    ctx.lineWidth = 0.6; ctx.strokeRect(31, 31, bw - 10, bh - 10);
+    ctx.fillStyle = tk.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.font = '40px ' + DISPLAY; ctx.fillText(M.name, 46, 76);
+    ctx.font = 'italic 500 14px ' + BODY; ctx.fillText(sub, 46, 97);
+
+    /* rose des vents */
+    ctx.save(); ctx.translate(W - 82, H - 84);
+    var cr = 40;
+    ctx.strokeStyle = tk.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, cr * 0.62, 0, TAU); ctx.stroke();
+    for (i = 0; i < 8; i++) {
+      var ca = i * Math.PI / 4 - Math.PI / 2, cl = i % 2 === 0 ? cr : cr * 0.58, cw = i % 2 === 0 ? cr * 0.16 : cr * 0.1;
+      for (j = -1; j <= 1; j += 2) {
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(ca) * cl, Math.sin(ca) * cl);
+        ctx.lineTo(Math.cos(ca + j * Math.PI / 2) * cw, Math.sin(ca + j * Math.PI / 2) * cw);
+        ctx.lineTo(0, 0); ctx.closePath();
+        ctx.fillStyle = j === 1 ? (i === 0 ? tk.roof0 : tk.ink) : tk.paper; ctx.fill();
+        ctx.lineWidth = 0.8; ctx.strokeStyle = tk.ink; ctx.stroke();
+      }
+    }
+    ctx.fillStyle = tk.ink; ctx.font = '22px ' + DISPLAY; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText('N', 0, -cr - 7);
+    ctx.restore();
+
+    /* échelle : 1 px = 1 toise */
+    var sx = 36, sy = H - 46;
+    for (i = 0; i < 4; i++) {
+      ctx.fillStyle = i % 2 ? tk.paper : tk.ink; ctx.fillRect(sx + i * 25, sy, 25, 6);
+    }
+    ctx.strokeStyle = tk.ink; ctx.lineWidth = 1; ctx.strokeRect(sx, sy, 100, 6);
+    ctx.fillStyle = tk.ink; ctx.font = 'italic 500 13px ' + BODY; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText('0', sx - 3, sy - 5); ctx.fillText('100 toises', sx + 108, sy + 6);
+
+    /* cadre */
+    ctx.strokeStyle = tk.ink; ctx.lineWidth = 1.6; ctx.strokeRect(8, 8, W - 16, H - 16);
+    ctx.lineWidth = 0.6; ctx.strokeRect(13, 13, W - 26, H - 26);
+  }
+
+  /* ---------- interface ---------- */
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { seed: 'k7f3q2', size: 'ville', river: true, walls: true, coast: false, layout: 'auto' };
+  var LCHAR = { auto: '', radial: 'c', organic: 'o', bastide: 'b', linear: 'l' };
+  var model = null, lastHash = '';
+
+  function randomSeed() {
+    var s = '', c = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    for (var i = 0; i < 6; i++) s += c.charAt(Math.floor(Math.random() * c.length));
+    return s;
+  }
+  function cleanSeed(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 24); }
+  function hashOf() { return state.size + '-' + (state.river ? 'r' : 'x') + (state.walls ? 'm' : 'x') + LCHAR[state.layout] + (state.coast ? 'k' : '') + '-' + state.seed; }
+  function parseHash() {
+    var m = /^#(bourg|ville|cite)-([rx])([mx])([cobl]?)(k?)-([a-z0-9]{1,24})$/.exec(location.hash || '');
+    if (!m) return false;
+    state.size = m[1]; state.river = m[2] === 'r'; state.walls = m[3] === 'm'; state.coast = m[5] === 'k'; state.seed = m[6];
+    state.layout = 'auto';
+    for (var key in LCHAR) { if (LCHAR[key] && LCHAR[key] === m[4]) state.layout = key; }
+    return true;
+  }
+
+  function syncUI() {
+    $('seed').value = state.seed;
+    $('size-' + state.size).checked = true;
+    $('plan-' + state.layout).checked = true;
+    $('st-plan').textContent = model.layoutName;
+    $('opt-walls').checked = state.walls;
+    $('opt-river').checked = state.river;
+    $('opt-coast').checked = state.coast;
+    $('st-port').textContent = model.harbor ? ({ bourg: 'Plage, jetée', ville: 'Quai, chantier', cite: 'Docks, phare' })[state.size] : '—';
+    $('city-name').textContent = model.name;
+    $('city-year').textContent = 'Plan levé en l’an de grâce ' + roman(model.year);
+    $('st-pop').textContent = '≈ ' + model.pop.toLocaleString('fr-FR');
+    $('st-houses').textContent = model.nHouses.toLocaleString('fr-FR');
+    $('st-towers').textContent = model.nTowers;
+    $('st-gates').textContent = model.nGates || '—';
+    $('st-bridges').textContent = model.bridges.length || '—';
+    $('st-mills').textContent = model.mills.length || '—';
+    $('st-yards').textContent = model.yards.length || '—';
+    canvas.setAttribute('aria-label', 'Carte de ' + model.name + ' : ' + model.nHouses + ' maisons' + ', plan ' + model.layoutName.toLowerCase() + (state.walls ? ', entourée de remparts' : '') + (state.river ? ', traversées par une rivière' : '') + (state.coast ? ', ouverte sur la mer' : ''));
+    document.title = 'Atlas des Bourgs';
+    var h = hashOf();
+    if (location.hash !== '#' + h) { lastHash = h; try { location.hash = h; } catch (e) { } }
+    $('status').textContent = '';
+    $('linkbox').hidden = true;
+  }
+
+  function render() {
+    model = generate(state.seed, state.size, state.river, state.walls, state.layout, state.coast);
+    draw(model, readTokens());
+    syncUI();
+  }
+  function redraw() { if (model) draw(model, readTokens()); }
+
+  document.querySelectorAll('input[name="size"]').forEach(function (el) {
+    el.addEventListener('change', function () { if (el.checked) { state.size = el.value; render(); } });
+  });
+  document.querySelectorAll('input[name="plan"]').forEach(function (el) {
+    el.addEventListener('change', function () { if (el.checked) { state.layout = el.value; render(); } });
+  });
+  $('opt-walls').addEventListener('change', function (e) { state.walls = e.target.checked; render(); });
+  $('opt-river').addEventListener('change', function (e) { state.river = e.target.checked; render(); });
+  $('opt-coast').addEventListener('change', function (e) { state.coast = e.target.checked; render(); });
+  $('btn-new').addEventListener('click', function () { state.seed = randomSeed(); render(); });
+  $('seed').addEventListener('input', function (e) {
+    var c = cleanSeed(e.target.value);
+    if (c !== e.target.value) e.target.value = c;
+  });
+  $('seed').addEventListener('change', function (e) {
+    state.seed = cleanSeed(e.target.value) || randomSeed(); render();
+  });
+  $('seed').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { state.seed = cleanSeed(e.target.value) || randomSeed(); render(); }
+  });
+  $('btn-copy').addEventListener('click', function () {
+    var url = location.href, box = $('linkbox');
+    function fallback() {
+      box.value = url; box.hidden = false; box.focus(); box.select();
+      $('status').textContent = 'Copie automatique refusée. Le lien est sélectionné, copiez-le à la main.';
+    }
+    try {
+      navigator.clipboard.writeText(url).then(function () {
+        box.hidden = true; $('status').textContent = 'Lien copié.';
+      }, fallback);
+    } catch (e) { fallback(); }
+  });
+  window.addEventListener('hashchange', function () {
+    if (location.hash.slice(1) === lastHash) return;
+    if (parseHash()) render();
+  });
+  try {
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    if (mq.addEventListener) mq.addEventListener('change', redraw);
+  } catch (e) { }
+  new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  parseHash();
+  render();
+  if (document.fonts && document.fonts.load) {
+    Promise.all([
+      document.fonts.load('40px "Pirata One"'),
+      document.fonts.load('italic 500 14px "Alegreya Sans"')
+    ]).then(redraw, function () { });
+  }
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+}
+</script>
+</body>
+</html>
