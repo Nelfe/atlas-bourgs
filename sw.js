@@ -1,5 +1,5 @@
 /* Service worker : mise en cache pour un usage hors connexion */
-var CACHE = 'atlas-bourgs-v1';
+var CACHE = 'atlas-bourgs-v2';
 var CORE = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(CORE); }).then(function () { return self.skipWaiting(); }));

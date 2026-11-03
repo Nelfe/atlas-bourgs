@@ -204,7 +204,11 @@ button.primary:hover { filter: brightness(1.08); }
 
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
 .stage { margin: 0; min-width: 0; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: var(--m-land); }
-canvas { display: block; width: 100%; height: auto; }
+canvas { display: block; width: 100%; height: auto; transform-origin: 0 0; touch-action: pan-y; user-select: none; -webkit-user-select: none; will-change: transform; }
+.stage { position: relative; }
+.zoom { position: absolute; top: 8px; right: 8px; display: grid; gap: 6px; z-index: 2; }
+.zoom button { width: 40px; height: 40px; padding: 0; font-size: 22px; line-height: 1; border-radius: 6px; background: color-mix(in srgb, var(--bg, #fff) 88%, transparent); }
+.zoom button[hidden] { display: none; }
 
 .sheet { display: grid; gap: 18px; min-width: 0; }
 .sheet h2 { font: 400 38px/1.05 var(--font-display); margin: 0; overflow-wrap: anywhere; text-wrap: balance; }
@@ -275,6 +279,11 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
   <div class="layout">
     <figure class="stage">
       <canvas id="map" width="1200" height="800" role="img" aria-label="Carte d'une ville médiévale"></canvas>
+      <div class="zoom" role="group" aria-label="Zoom de la carte">
+        <button type="button" id="zoom-in" aria-label="Zoomer">+</button>
+        <button type="button" id="zoom-out" aria-label="Dézoomer">−</button>
+        <button type="button" id="zoom-reset" aria-label="Réinitialiser le zoom" hidden>⤢</button>
+      </div>
     </figure>
 
     <aside class="sheet">
@@ -2302,6 +2311,72 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
       document.fonts.load('italic 500 14px "Alegreya Sans"')
     ]).then(redraw, function () { });
   }
+})();
+</script>
+
+<script>
+/* zoom et déplacement : pincer, glisser, double-toucher, boutons + / − ; Ctrl + molette sur ordinateur */
+(function () {
+  'use strict';
+  var cv = document.getElementById('map'), stage = cv.parentNode;
+  var sc = 1, tx = 0, ty = 0, MAXZ = 5;
+  var ptrs = {}, last = null;
+  var bReset = document.getElementById('zoom-reset');
+  function clamp() {
+    var w = cv.offsetWidth, h = cv.offsetHeight;
+    tx = Math.min(0, Math.max(w - w * sc, tx));
+    ty = Math.min(0, Math.max(h - h * sc, ty));
+  }
+  function apply() {
+    clamp();
+    cv.style.transform = sc === 1 ? '' : 'translate(' + tx + 'px,' + ty + 'px) scale(' + sc + ')';
+    cv.style.touchAction = sc > 1 ? 'none' : 'pan-y';
+    bReset.hidden = sc === 1;
+  }
+  function zoomAt(cx, cy, ns) {
+    ns = Math.min(MAXZ, Math.max(1, ns));
+    tx = cx - (cx - tx) * ns / sc; ty = cy - (cy - ty) * ns / sc; sc = ns;
+    if (sc < 1.02) { sc = 1; tx = 0; ty = 0; }
+    apply();
+  }
+  function local(e) { var r = stage.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  function pts() { return Object.keys(ptrs).map(function (k) { return ptrs[k]; }); }
+  cv.addEventListener('pointerdown', function (e) {
+    ptrs[e.pointerId] = local(e);
+    try { cv.setPointerCapture(e.pointerId); } catch (x) { }
+    last = null;
+  });
+  cv.addEventListener('pointermove', function (e) {
+    if (!ptrs[e.pointerId]) return;
+    var p = pts(), np = local(e);
+    if (p.length === 2) {
+      var a = p[0], b = p[1], d0 = Math.hypot(a.x - b.x, a.y - b.y), c0 = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      ptrs[e.pointerId] = np;
+      p = pts(); a = p[0]; b = p[1];
+      var d1 = Math.hypot(a.x - b.x, a.y - b.y), c1 = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      if (d0 > 0) { tx += c1.x - c0.x; ty += c1.y - c0.y; zoomAt(c1.x, c1.y, sc * d1 / d0); }
+    } else if (sc > 1) {
+      var o = ptrs[e.pointerId];
+      tx += np.x - o.x; ty += np.y - o.y; ptrs[e.pointerId] = np; apply();
+    } else ptrs[e.pointerId] = np;
+  });
+  function up(e) { delete ptrs[e.pointerId]; }
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('dblclick', function (e) {
+    var p = local(e);
+    if (sc > 1) zoomAt(p.x, p.y, 1); else zoomAt(p.x, p.y, 2.6);
+  });
+  cv.addEventListener('wheel', function (e) {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    var p = local(e); zoomAt(p.x, p.y, sc * Math.exp(-e.deltaY * 0.01));
+  }, { passive: false });
+  function center() { return { x: stage.clientWidth / 2, y: cv.offsetHeight / 2 }; }
+  document.getElementById('zoom-in').addEventListener('click', function () { var c = center(); zoomAt(c.x, c.y, sc * 1.6); });
+  document.getElementById('zoom-out').addEventListener('click', function () { var c = center(); zoomAt(c.x, c.y, sc / 1.6); });
+  bReset.addEventListener('click', function () { sc = 1; tx = 0; ty = 0; apply(); });
+  new MutationObserver(function () { sc = 1; tx = 0; ty = 0; apply(); }).observe(cv, { attributes: true, attributeFilter: ['aria-label'] });
+  window.addEventListener('resize', apply);
 })();
 </script>
 
