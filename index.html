@@ -787,6 +787,21 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         verts.forEach(function (v2, ix) { var d = angDiff(v2.a, wa2); if (d < bd && gateIdx.indexOf(ix) < 0 && (!wet || riverDist(v2.x, v2.y) >= rw / 2 + 18)) { bd = d; bi = ix; } });
         if (bi >= 0) gateIdx.push(bi);
       });
+      /* pas de grand secteur de rempart sans porte : on ajoute une porte au milieu de tout écart supérieur à ~100° */
+      if (layout !== 'linear') {
+        for (var gp = 0; gp < 3; gp++) {
+          var ga = gateIdx.map(function (gi) { return verts[gi].a; }).sort(function (a, b) { return a - b; }), bigGap = null, bgs = 1.75;
+          for (var gk = 0; gk < ga.length; gk++) {
+            var gn = gk + 1 < ga.length ? ga[gk + 1] : ga[0] + TAU, gsz = gn - ga[gk];
+            if (gsz > bgs) { bgs = gsz; bigGap = (ga[gk] + gn) / 2; }
+          }
+          if (bigGap === null) break;
+          var bi2 = -1, bd2 = 1e9;
+          verts.forEach(function (v2, ix) { var d = angDiff(v2.a, bigGap); if (d < bd2 && gateIdx.indexOf(ix) < 0 && (!wet || riverDist(v2.x, v2.y) >= rw / 2 + 18)) { bd2 = d; bi2 = ix; } });
+          if (bi2 < 0 || bd2 > 0.5) break;
+          gateIdx.push(bi2);
+        }
+      }
       if (layout === 'organic' && gateIdx.length > 2) {
         var g0 = gateIdx[0], far = 1, farD = -1;
         for (k = 1; k < gateIdx.length; k++) {
@@ -1419,6 +1434,13 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     var bailS = Math.round(cfg.castle * 0.36);
     var cath, castle, bailli = null, castleR = castleS * 0.72 + 12;
     function dryAt(x, y, r) { return !wet || riverDist(x, y) > rw / 2 + r; }
+    /* un édifice important doit se trouver sur la même rive que la place du marché (sinon il serait coupé de la ville) */
+    function sameBank(x, y) {
+      if (!river) return true;
+      var n2 = 28;
+      for (var z = 1; z < n2; z++) if (riverDist(P.x + (x - P.x) * z / n2, P.y + (y - P.y) * z / n2) < rw / 2 + 3) return false;
+      return true;
+    }
     if (layout === 'bastide') {
       var cl = Math.min(cfg.cath, Math.min(gx, gy) - 16), cathCell = null;
       [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (dc) {
@@ -1439,7 +1461,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
           var ci3 = mcell.i + dc[0], cj3 = mcell.j + dc[1];
           if (gridXs.indexOf(ci3 * gx) < 0 || gridXs.indexOf((ci3 + 1) * gx) < 0 || gridYs.indexOf(cj3 * gy) < 0 || gridYs.indexOf((cj3 + 1) * gy) < 0) return;
           var c3 = loc((ci3 + 0.5) * gx, (cj3 + 0.5) * gy);
-          if (!dryAt(c3.x, c3.y, 14)) return;
+          if (!dryAt(c3.x, c3.y, 14) || !sameBank(c3.x, c3.y)) return;
           if (avoidPts.some(function (o) { return o && Math.hypot(o.x - c3.x, o.y - c3.y) < Math.min(gx, gy) * 0.6; })) return;
           found = c3;
         });
@@ -1450,7 +1472,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         var cxl = sg2[0] > 0 ? (gxs[gxs.length - 1] + gxs[gxs.length - 2]) / 2 : (gxs[0] + gxs[1]) / 2;
         var cyl = sg2[1] > 0 ? (gys[gys.length - 1] + gys[gys.length - 2]) / 2 : (gys[0] + gys[1]) / 2;
         var cpos = loc(cxl, cyl);
-        var rd = wet ? riverDist(cpos.x, cpos.y) : rh() * 100;
+        var rd = wet ? riverDist(cpos.x, cpos.y) - (sameBank(cpos.x, cpos.y) ? 0 : 400) : rh() * 100;
         if (rd > bestRd) { bestRd = rd; bestC = cpos; }
       });
       castle = { x: bestC.x, y: bestC.y, ang: theta, S: Math.min(castleS, Math.min(gx, gy) - 16), type: lordKind };
@@ -1509,8 +1531,8 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
           var px = C.x + Math.cos(cd2.a) * d, py = C.y + Math.sin(cd2.a) * d;
           var rdist = wet ? riverDist(px, py) - (rw / 2 + castleR) : 60;
           var dcat = Math.hypot(px - cath.x, py - cath.y) - (castleR + cath.L * 0.5);
-          var cc = castleClear(px, py);
-          var sc = (rdist >= 0 && dcat >= 0 && cc >= 2) ? 1000 + cd2.pref * 20 - fi * 8 + rh() * 30 : -1000 + Math.min(rdist, 0) * 5 + Math.min(dcat, 0) * 5 + Math.min(cc, 2) * 20;
+          var cc = castleClear(px, py), bankOk = sameBank(px, py);
+          var sc = (rdist >= 0 && dcat >= 0 && cc >= 2 && bankOk) ? 1000 + cd2.pref * 20 - fi * 8 + rh() * 30 : -1000 + Math.min(rdist, 0) * 5 + Math.min(dcat, 0) * 5 + Math.min(cc, 2) * 20;
           if (sc > bestSc) { bestSc = sc; bestCs = { x: px, y: py, a: cd2.a }; }
         });
       });
@@ -1521,7 +1543,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         for (var kd = kdMin; kd <= kdMax; kd += 7) for (var kk = 0; kk < 36; kk++) {
           var ka = kk * TAU / 36 + lordRng() * 0.1;
           var x = P.x + Math.cos(ka) * kd, y = P.y + Math.sin(ka) * kd;
-          if (nd(x, y) > ndMax || !dryAt(x, y, rr + 4)) continue;
+          if (nd(x, y) > ndMax || !dryAt(x, y, rr + 4) || !sameBank(x, y)) continue;
           var cc = clearOf(x, y) - rr;
           if (cc < 1) continue;
           var bad = false;
