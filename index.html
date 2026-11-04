@@ -283,6 +283,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         <label class="chip"><input type="checkbox" id="opt-coast"><span>Côte</span></label>
         <label class="chip"><input type="checkbox" id="opt-hills"><span>Collines</span></label>
         <label class="chip"><input type="checkbox" id="opt-ham"><span>Villages</span></label>
+        <label class="chip"><input type="checkbox" id="opt-terr"><span>Marais, vignes</span></label>
         <label class="chip"><input type="checkbox" id="opt-names"><span>Noms de rues</span></label>
       </div>
     </fieldset>
@@ -351,6 +352,8 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
           <li><i style="background:var(--m-stone)"></i>Hôtel-Dieu</li>
           <li data-f="ham"><i style="background:var(--m-stone);border-color:var(--m-walledge)"></i>Abbaye</li>
           <li data-f="ham"><i style="background:var(--m-roof3)"></i>Léproserie</li>
+          <li data-f="terr"><i style="background:var(--m-water);opacity:.55"></i>Marais, gué</li>
+          <li data-f="terr"><i style="background:var(--m-field1);border-color:var(--m-conifer)"></i>Vigne</li>
           <li data-f="hills"><i style="background:color-mix(in srgb, var(--m-landdark) 60%, var(--m-land))"></i>Colline</li>
           <li data-f="ham"><i style="background:var(--m-roof0)"></i>Village satellite</li>
         </ul>
@@ -508,7 +511,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
   }
 
   /* ---------- génération ---------- */
-  function generate(seed, sizeKey, useRiver, useWalls, layoutKey, useCoast, useHills, useHam) {
+  function generate(seed, sizeKey, useRiver, useWalls, layoutKey, useCoast, useHills, useHam, useTerr) {
     var cfg = SIZES[sizeKey];
     function sub(k) { return mulberry32(hashSeed(seed + '|' + sizeKey + '|' + k)()); }
     var M = { seed: seed, sizeKey: sizeKey, useRiver: useRiver, useWalls: useWalls, cfg: cfg };
@@ -1733,10 +1736,15 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     function inCorner(x, y, mx, my) {
       return (x - mx < 200 && y - my < 80) || (x - mx < 200 && y + my > H - 56) || (x + mx > W - 110 && y + my > H - 120);
     }
+    var marshes = [], blocks = [];
     function inHill(x, y, m) {
       for (var q = 0; q < hills.length; q++) {
         var hl = hills[q], ex = (x - hl.x) / (hl.rx + m), ey = (y - hl.y) / (hl.ry + m);
         if (ex * ex + ey * ey < 1) return true;
+      }
+      for (var q2 = 0; q2 < marshes.length; q2++) {
+        var ml = marshes[q2], mex = (x - ml.x) / (ml.rx * 1.12 + m), mey = (y - ml.y) / (ml.ry * 1.12 + m);
+        if (mex * mex + mey * mey < 1) return true;
       }
       return false;
     }
@@ -1765,6 +1773,55 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     }
     M.hills = hills;
 
+    /* terrain varié : marais, gués */
+    M.fords = [];
+    if (useTerr) {
+      var rms = sub('marsh'), nMar = (sizeKey === 'bourg' ? 1 : 2) + (rms() < 0.5 ? 1 : 0);
+      for (var tm = 0, gm = 0; tm < 500 && gm < nMar; tm++) {
+        var mx0 = 40 + rms() * (W - 80), my0 = 40 + rms() * (H - 80), mrx = 34 + rms() * 34, mry = mrx * (0.55 + rms() * 0.2);
+        if (inCorner(mx0, my0, mrx, mry)) continue;
+        if (mx0 - mrx < 8 || mx0 + mrx > W - 8 || my0 - mry < 8 || my0 + mry > H - 8) continue;
+        if (nd(mx0, my0) < 1.45 + mrx / R) continue;
+        if (wet) { var dwm = riverDist(mx0, my0) - rw / 2; if (dwm < mrx * 0.95 + 6 || dwm > mrx + 80) continue; }
+        var nsM = nearestSeg(segs, mx0, my0);
+        if (nsM.d < mrx + nsM.seg.w / 2 + 8) continue;
+        if (harbor && harbor.ex.some(function (e0) { return Math.hypot(e0.x - mx0, e0.y - my0) < e0.r + mrx + 6; })) continue;
+        if (yards.some(function (y1) { return Math.hypot(y1.x - mx0, y1.y - my0) < mrx + Math.hypot(y1.w, y1.h) / 2 + 6; })) continue;
+        if (houses.some(function (h0) { return Math.hypot(h0.x - mx0, h0.y - my0) < mrx + 8; })) continue;
+        if (inHill(mx0, my0, mrx)) continue;
+        var mj = [];
+        for (var mi = 0; mi < 14; mi++) mj.push(0.86 + rms() * 0.26);
+        var tufts = [];
+        for (var mt = 0; mt < 9; mt++) { var ta = rms() * TAU, tr = Math.sqrt(rms()) * 0.8; tufts.push({ x: Math.cos(ta) * tr * mrx, y: Math.sin(ta) * tr * mry }); }
+        marshes.push({ x: mx0, y: my0, rx: mrx, ry: mry, j: mj, tufts: tufts });
+        gm++;
+      }
+      if (river && river.length > 8) {
+        var rfd = sub('fords'), nFd = sizeKey === 'bourg' ? 1 : 2;
+        for (var tf = 0; tf < 400 && M.fords.length < nFd; tf++) {
+          var ri = 2 + Math.floor(rfd() * (river.length - 4)), fq = river[ri], f0 = river[ri - 1], f1 = river[ri + 1];
+          if (!fq || !f0 || !f1) continue;
+          var ftx = f1.x - f0.x, fty = f1.y - f0.y, ftl = Math.hypot(ftx, fty) || 1, fnx = -fty / ftl, fny = ftx / ftl;
+          if (fq.x < 70 || fq.x > W - 70 || fq.y < 70 || fq.y > H - 70) continue;
+          if (nd(fq.x, fq.y) < 1.7 || inCorner(fq.x, fq.y, 50, 50)) continue;
+          if (M.fords.some(function (o) { return Math.hypot(o.x - fq.x, o.y - fq.y) < 170; })) continue;
+          var fe = [-1, 1].map(function (sg) { return { x: fq.x + fnx * sg * (rw / 2 + 38), y: fq.y + fny * sg * (rw / 2 + 38) }; });
+          var okf = fq && !inHill(fq.x, fq.y, 12);
+          fe.forEach(function (e0) {
+            if (e0.x < 10 || e0.x > W - 10 || e0.y < 10 || e0.y > H - 10) okf = false;
+            else if (riverDist(e0.x, e0.y) < rw / 2 + 8 || inHill(e0.x, e0.y, 8) || nearestSeg(segs, e0.x, e0.y).d < 22) okf = false;
+          });
+          if (!okf) continue;
+          if (nearestSeg(segs, fq.x, fq.y).d < 40) continue;
+          if (houses.some(function (h0) { return Math.hypot(h0.x - fq.x, h0.y - fq.y) < rw / 2 + 40; })) continue;
+          if (harbor && harbor.ex.some(function (e0) { return Math.hypot(e0.x - fq.x, e0.y - fq.y) < e0.r + 50; })) continue;
+          M.fords.push({ x: fq.x, y: fq.y, nx: fnx, ny: fny, ends: fe });
+          blocks.push({ x: fq.x, y: fq.y, r: rw / 2 + 44 });
+        }
+      }
+    }
+    M.marshes = marshes;
+
     /* villages satellites : quelques maisons le long d'un chemin raccordé à une route */
     var psegs = [], hamlets = [], paths = [];
     function pathClear(z_pts) {
@@ -1791,6 +1848,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         if (z_n2 < 1.7 || z_n2 > 3.3) continue;
         if (inCorner(hx2, hy2, 60, 50)) continue;
         if (hamlets.some(function (o) { return Math.hypot(o.x - hx2, o.y - hy2) < 170; })) continue;
+        if (blocks.some(function (o) { return Math.hypot(o.x - hx2, o.y - hy2) < o.r + 60; })) continue;
         if (wet && riverDist(hx2, hy2) < rw / 2 + 48) continue;
         if (!sameBank(hx2, hy2)) continue;
         if (inHill(hx2, hy2, 40)) continue;
@@ -1836,7 +1894,6 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     M.hamlets = hamlets; M.paths = paths;
 
     /* dépendances hors les murs (option Villages) : abbaye, léproserie, potence */
-    var blocks = [];
     function outSpot(r, nMin, nMax, rs, extra) {
       for (var t = 0; t < 500; t++) {
         var ox = 40 + rs() * (W - 80), oy = 40 + rs() * (H - 80), on = nd(ox, oy);
@@ -1928,6 +1985,14 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
       if (clash) continue;
       if (fields.some(function (o) { return Math.hypot(o.x - f.x, o.y - f.y) < 100 && obbOverlap(o, f); })) continue;
       fields.push(f);
+    }
+    if (useTerr) {
+      var rvn = sub('vines');
+      fields.forEach(function (f0) {
+        var dn0 = Math.hypot(f0.x - C.x, f0.y - C.y) / R, nearH = hills.some(function (hl) { return Math.hypot(f0.x - hl.x, f0.y - hl.y) < hl.rx + 70; });
+        var pv = nearH ? 0.65 : (dn0 < 2.4 ? 0.1 : 0.03);
+        if (rvn() < pv) f0.vine = true;
+      });
     }
     M.fields = fields;
 
@@ -2024,6 +2089,8 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     if (M.abbey) addPoi(M.abbey.x, M.abbey.y, 32, 'Abbaye ' + SAINTS[2], 'Abbaye', 'Les moines y prient, copient des livres, élèvent des abeilles et accueillent les voyageurs.');
     if (M.lepro) addPoi(M.lepro.x, M.lepro.y, 24, 'Léproserie', 'Maladrerie hors les murs', 'Les lépreux y vivent à l’écart, nourris par les aumônes de la ville.');
     if (M.gibbet) addPoi(M.gibbet.x, M.gibbet.y, 12, 'Potence', 'Justice du seigneur', 'On y exécute les condamnés, un peu à l’écart des routes, pour l’exemple.');
+    M.fords.forEach(function (fd) { addPoi(fd.x, fd.y, rw / 2 + 12, 'Gué', 'Passage à gué', 'Les charrettes et les troupeaux traversent ici quand les eaux sont basses. Après les orages, le passage devient dangereux.'); });
+    marshes.forEach(function (ms) { addPoi(ms.x, ms.y, Math.min(ms.rx, ms.ry), 'Marais', 'Terres humides', 'Terrain spongieux, refuge des hérons et des fièvres. On y coupe roseaux et tourbe, mais on s’y perd facilement.'); });
     M.pois = pois;
 
     /* noms de rues (affichés si l'option est cochée) */
@@ -2126,8 +2193,40 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
       ctx.stroke(); ctx.globalAlpha = 1; ctx.restore();
     });
 
+    /* marais */
+    M.marshes.forEach(function (m0) {
+      ctx.save(); ctx.translate(m0.x, m0.y);
+      ctx.beginPath();
+      for (var mi = 0; mi < 14; mi++) {
+        var ma = mi / 14 * TAU, mrr = m0.j[mi];
+        var px0 = Math.cos(ma) * m0.rx * mrr, py0 = Math.sin(ma) * m0.ry * mrr;
+        if (mi) ctx.lineTo(px0, py0); else ctx.moveTo(px0, py0);
+      }
+      ctx.closePath();
+      ctx.fillStyle = tk.water; ctx.globalAlpha = 0.3; ctx.fill(); ctx.globalAlpha = 0.6; ctx.strokeStyle = tk.shore; ctx.lineWidth = 1.2; ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = tk.waterhi; ctx.lineWidth = 1; ctx.beginPath();
+      m0.tufts.forEach(function (t, ti) { if (ti % 2) { ctx.moveTo(t.x - 6, t.y + 4); ctx.lineTo(t.x + 6, t.y + 4); } });
+      ctx.stroke();
+      ctx.strokeStyle = tk.forest; ctx.lineWidth = 1.1; ctx.beginPath();
+      m0.tufts.forEach(function (t, ti) { if (ti % 2 === 0) { for (var k = -1; k <= 1; k++) { ctx.moveTo(t.x + k * 2, t.y + 3); ctx.lineTo(t.x + k * 3.2, t.y - 4); } } });
+      ctx.stroke();
+      ctx.restore();
+    });
+
     /* champs */
     M.fields.forEach(function (f) {
+      if (f.vine) {
+        ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.ang);
+        ctx.fillStyle = tk.field1; ctx.fillRect(-f.w / 2 + 1.5, -f.h / 2 + 1.5, f.w - 3, f.h - 3);
+        ctx.strokeStyle = tk.conifer; ctx.fillStyle = tk.conifer; ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (var vy = -f.h / 2 + 5; vy < f.h / 2 - 3; vy += 5) {
+          ctx.moveTo(-f.w / 2 + 3, vy); ctx.lineTo(f.w / 2 - 3, vy);
+          for (var vx = -f.w / 2 + 5; vx < f.w / 2 - 3; vx += 4.2) { ctx.moveTo(vx + 1.3, vy); ctx.arc(vx, vy, 1.3, 0, TAU); }
+        }
+        ctx.stroke(); ctx.globalAlpha = 0.25; ctx.fill(); ctx.globalAlpha = 1; ctx.restore();
+        return;
+      }
       ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.ang);
       ctx.fillStyle = tk['field' + f.tone];
       ctx.fillRect(-f.w / 2 + 1.5, -f.h / 2 + 1.5, f.w - 3, f.h - 3);
@@ -2194,6 +2293,21 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     /* chemins vers les villages satellites */
     M.paths.forEach(function (s) { strokePoly(s.pts); ctx.strokeStyle = tk.roadedge; ctx.lineWidth = s.w + 2; ctx.stroke(); });
     M.paths.forEach(function (s) { strokePoly(s.pts); ctx.strokeStyle = tk.road; ctx.lineWidth = s.w; ctx.stroke(); });
+    M.fords.forEach(function (fd) {
+      ctx.save(); ctx.lineCap = 'butt';
+      fd.ends.forEach(function (e0) {
+        var sx = fd.x + (e0.x - fd.x) * (M.rw / 2 - 2) / (Math.hypot(e0.x - fd.x, e0.y - fd.y) || 1), sy = fd.y + (e0.y - fd.y) * (M.rw / 2 - 2) / (Math.hypot(e0.x - fd.x, e0.y - fd.y) || 1);
+        ctx.strokeStyle = tk.road; ctx.lineWidth = 2.6; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(e0.x, e0.y); ctx.stroke();
+      });
+      ctx.setLineDash([]);
+      var nst = Math.max(4, Math.round(M.rw / 5));
+      for (var si = 0; si <= nst; si++) {
+        var off = (si / nst - 0.5) * (M.rw + 2);
+        ctx.fillStyle = tk.stone; ctx.strokeStyle = tk.walledge; ctx.lineWidth = 0.9;
+        ctx.beginPath(); ctx.ellipse(fd.x + fd.nx * off, fd.y + fd.ny * off, 2.8, 2.1, Math.atan2(fd.ny, fd.nx), 0, TAU); ctx.fill(); ctx.stroke();
+      }
+      ctx.restore();
+    });
 
     /* place du marché */
     strokePoly(M.market, true); ctx.fillStyle = tk.road; ctx.fill(); ctx.strokeStyle = tk.roadedge; ctx.lineWidth = 1.4; ctx.stroke();
@@ -2611,7 +2725,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
 
   /* ---------- interface ---------- */
   var $ = function (id) { return document.getElementById(id); };
-  var state = { seed: 'k7f3q2', size: 'ville', river: true, walls: true, coast: false, hills: false, ham: false, names: false, layout: 'auto' };
+  var state = { seed: 'k7f3q2', size: 'ville', river: true, walls: true, coast: false, hills: false, ham: false, terr: false, names: false, layout: 'auto' };
   var LCHAR = { auto: '', radial: 'c', organic: 'o', bastide: 'b', linear: 'l' };
   var model = null, lastHash = '';
 
@@ -2621,11 +2735,11 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     return s;
   }
   function cleanSeed(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 24); }
-  function hashOf() { return state.size + '-' + (state.river ? 'r' : 'x') + (state.walls ? 'm' : 'x') + LCHAR[state.layout] + (state.coast ? 'k' : '') + (state.hills ? 'h' : '') + (state.ham ? 'v' : '') + (state.names ? 'n' : '') + '-' + state.seed; }
+  function hashOf() { return state.size + '-' + (state.river ? 'r' : 'x') + (state.walls ? 'm' : 'x') + LCHAR[state.layout] + (state.coast ? 'k' : '') + (state.hills ? 'h' : '') + (state.ham ? 'v' : '') + (state.terr ? 't' : '') + (state.names ? 'n' : '') + '-' + state.seed; }
   function parseHash() {
-    var m = /^#(bourg|ville|cite)-([rx])([mx])([cobl]?)([khvn]*)-([a-z0-9]{1,24})$/.exec(location.hash || '');
+    var m = /^#(bourg|ville|cite)-([rx])([mx])([cobl]?)([khvtn]*)-([a-z0-9]{1,24})$/.exec(location.hash || '');
     if (!m) return false;
-    state.size = m[1]; state.river = m[2] === 'r'; state.walls = m[3] === 'm'; state.coast = m[5].indexOf('k') >= 0; state.hills = m[5].indexOf('h') >= 0; state.ham = m[5].indexOf('v') >= 0; state.names = m[5].indexOf('n') >= 0; state.seed = m[6];
+    state.size = m[1]; state.river = m[2] === 'r'; state.walls = m[3] === 'm'; state.coast = m[5].indexOf('k') >= 0; state.hills = m[5].indexOf('h') >= 0; state.ham = m[5].indexOf('v') >= 0; state.names = m[5].indexOf('n') >= 0; state.terr = m[5].indexOf('t') >= 0; state.seed = m[6];
     state.layout = 'auto';
     for (var key in LCHAR) { if (LCHAR[key] && LCHAR[key] === m[4]) state.layout = key; }
     return true;
@@ -2642,6 +2756,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     $('opt-hills').checked = state.hills;
     $('opt-ham').checked = state.ham;
     $('opt-names').checked = state.names;
+    $('opt-terr').checked = state.terr;
     $('st-hills').textContent = model.hills.length || '—';
     $('st-hamlets').textContent = model.hamlets.length || '—';
     $('st-port').textContent = model.harbor ? ({ bourg: 'Plage, jetée', ville: 'Quai, chantier', cite: 'Docks, phare' })[state.size] : '—';
@@ -2663,7 +2778,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
   }
 
   function render() {
-    model = generate(state.seed, state.size, state.river, state.walls, state.layout, state.coast, state.hills, state.ham);
+    model = generate(state.seed, state.size, state.river, state.walls, state.layout, state.coast, state.hills, state.ham, state.terr);
     model.showNames = state.names;
     hidePoi();
     draw(model, readTokens());
@@ -2682,6 +2797,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
   $('opt-coast').addEventListener('change', function (e) { state.coast = e.target.checked; render(); });
   $('opt-hills').addEventListener('change', function (e) { state.hills = e.target.checked; render(); });
   $('opt-ham').addEventListener('change', function (e) { state.ham = e.target.checked; render(); });
+  $('opt-terr').addEventListener('change', function (e) { state.terr = e.target.checked; render(); });
   $('opt-names').addEventListener('change', function (e) { state.names = e.target.checked; model.showNames = state.names; draw(model, readTokens()); syncUI(); });
   /* fiche d'un lieu au clic ou au toucher */
   var poiBox = $('poi'), downAt = null;
@@ -2725,7 +2841,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     var out = [];
     document.querySelectorAll('.legend li').forEach(function (li) {
       var f = li.getAttribute('data-f');
-      if ((f === 'coast' && !state.coast) || (f === 'hills' && !state.hills) || (f === 'ham' && !state.ham)) return;
+      if ((f === 'coast' && !state.coast) || (f === 'hills' && !state.hills) || (f === 'ham' && !state.ham) || (f === 'terr' && !state.terr)) return;
       var cs = getComputedStyle(li.querySelector('i'));
       out.push({ t: li.textContent.trim(), bg: cs.backgroundColor, bd: cs.borderTopColor });
     });
