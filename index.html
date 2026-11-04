@@ -159,6 +159,12 @@ dialog#about::backdrop { background: rgba(0, 0, 0, 0.45); }
 dialog#about h2 { font: 400 32px/1.1 var(--font-display); margin: 0 0 12px; }
 #about-body { min-height: 120px; color: var(--muted); }
 .dlg-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+.poi { position: absolute; z-index: 3; width: 250px; max-width: calc(100% - 16px); padding: 12px 14px 12px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 4px 18px rgba(0,0,0,0.25); }
+.poi[hidden] { display: none; }
+.poi .pt { font: 400 24px/1.1 var(--font-display); margin: 0 18px 2px 0; }
+.poi .ps { margin: 0 0 6px; font: 500 12px/1.2 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.poi .pd { margin: 0; font-size: 16px; line-height: 1.4; }
+.poi .x { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; min-height: 0; padding: 0; border: 0; background: transparent; font-size: 22px; line-height: 1; }
 .foot { text-align: center; color: var(--muted); font-size: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
 .opt-inline { display: flex; align-items: center; gap: 8px; font-size: 16px; cursor: pointer; }
 .opt-inline input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
@@ -277,6 +283,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         <label class="chip"><input type="checkbox" id="opt-coast"><span>Côte</span></label>
         <label class="chip"><input type="checkbox" id="opt-hills"><span>Collines</span></label>
         <label class="chip"><input type="checkbox" id="opt-ham"><span>Villages</span></label>
+        <label class="chip"><input type="checkbox" id="opt-names"><span>Noms de rues</span></label>
       </div>
     </fieldset>
     <div class="field">
@@ -291,6 +298,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
   <div class="layout">
     <figure class="stage">
       <canvas id="map" width="1200" height="800" role="img" aria-label="Carte d'une ville médiévale"></canvas>
+      <div id="poi" class="poi" hidden role="dialog" aria-label="Détail du lieu"><button type="button" class="x" aria-label="Fermer">×</button><p class="pt"></p><p class="ps"></p><p class="pd"></p></div>
       <div class="zoom" role="group" aria-label="Zoom de la carte">
         <button type="button" id="zoom-in" aria-label="Zoomer">+</button>
         <button type="button" id="zoom-out" aria-label="Dézoomer">−</button>
@@ -339,6 +347,10 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
           <li><i style="background:var(--m-stone);border-color:var(--m-walledge)"></i>Pont de pierre</li>
           <li><i style="background:var(--m-road)"></i>Place du marché</li>
           <li><i style="background:var(--m-roof3)"></i>Chapelle, moulin</li>
+          <li><i style="background:var(--m-wood)"></i>Halle, auberge</li>
+          <li><i style="background:var(--m-stone)"></i>Hôtel-Dieu</li>
+          <li data-f="ham"><i style="background:var(--m-stone);border-color:var(--m-walledge)"></i>Abbaye</li>
+          <li data-f="ham"><i style="background:var(--m-roof3)"></i>Léproserie</li>
           <li data-f="hills"><i style="background:color-mix(in srgb, var(--m-landdark) 60%, var(--m-land))"></i>Colline</li>
           <li data-f="ham"><i style="background:var(--m-roof0)"></i>Village satellite</li>
         </ul>
@@ -1823,6 +1835,73 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     }
     M.hamlets = hamlets; M.paths = paths;
 
+    /* dépendances hors les murs (option Villages) : abbaye, léproserie, potence */
+    var blocks = [];
+    function outSpot(r, nMin, nMax, rs, extra) {
+      for (var t = 0; t < 500; t++) {
+        var ox = 40 + rs() * (W - 80), oy = 40 + rs() * (H - 80), on = nd(ox, oy);
+        if (on < nMin || on > nMax) continue;
+        if (inCorner(ox, oy, r, r)) continue;
+        if (wet && riverDist(ox, oy) < rw / 2 + r + 8) continue;
+        if (!sameBank(ox, oy)) continue;
+        if (inHill(ox, oy, r)) continue;
+        if (harbor && harbor.ex.some(function (e0) { return Math.hypot(e0.x - ox, e0.y - oy) < e0.r + r + 6; })) continue;
+        if (hamlets.some(function (o) { return Math.hypot(o.x - ox, o.y - oy) < r + 70; })) continue;
+        if (blocks.some(function (o) { return Math.hypot(o.x - ox, o.y - oy) < o.r + r + 10; })) continue;
+        if (yards.some(function (y1) { return Math.hypot(y1.x - ox, y1.y - oy) < r + Math.hypot(y1.w, y1.h) / 2 + 6; })) continue;
+        if (houses.some(function (h0) { return Math.hypot(h0.x - ox, h0.y - oy) < r + 10; })) continue;
+        var ons = nearestSeg(segs, ox, oy);
+        if (ons.d < r + ons.seg.w / 2 + 3 || ons.d > r + ons.seg.w / 2 + 3 + extra) continue;
+        if (psegs.length && nearestSeg(psegs, ox, oy).d < r + 8) continue;
+        return { x: ox, y: oy, ang: ons.seg.ang };
+      }
+      return null;
+    }
+    M.abbey = null; M.lepro = null; M.gibbet = null;
+    if (useHam) {
+      var rou = sub('outlying');
+      if (sizeKey !== 'bourg') {
+        var ab = outSpot(40, 1.5, 2.8, rou, 40);
+        if (ab) { ab.w = 56; ab.h = 38; M.abbey = ab; blocks.push({ x: ab.x, y: ab.y, r: 40 }); }
+      }
+      if (sizeKey !== 'bourg' || rou() < 0.5) {
+        var lp = outSpot(26, 1.5, 2.8, rou, 40);
+        if (lp) {
+          M.lepro = lp; blocks.push({ x: lp.x, y: lp.y, r: 28 });
+          var ca2 = Math.cos(lp.ang), sa2 = Math.sin(lp.ang);
+          [[-13, -9], [13, -9], [0, 13]].forEach(function (o) {
+            var lh = { x: lp.x + o[0] * ca2 - o[1] * sa2, y: lp.y + o[0] * sa2 + o[1] * ca2, w: 11, d: 8, ang: lp.ang, tone: 3, r: 5.5, ham: true, kind: 'lepro' };
+            houses.push(lh); hAdd(lh);
+          });
+        }
+      }
+      var gb = outSpot(8, 1.35, 2.3, rou, 14);
+      if (gb) { M.gibbet = gb; blocks.push({ x: gb.x, y: gb.y, r: 10 }); }
+    }
+
+    /* édifices particuliers repérés parmi les maisons : auberges aux entrées, halle, hôtel-Dieu */
+    var rin = sub('special');
+    var INNS = ['du Cerf', 'de l’Ange', 'du Lion d’Or', 'de la Croix Blanche', 'du Sanglier', 'du Cheval Blanc', 'de l’Étoile', 'du Pélican'];
+    shuffle(INNS, rin);
+    var innN = 0;
+    M.streets.forEach(function (st) {
+      if (st.kind !== 'main' || innN >= 4) return;
+      var bp = null, bd = 9;
+      st.pts.forEach(function (q) { var dd = Math.abs(nd(q.x, q.y) - 1.05); if (dd < bd) { bd = dd; bp = q; } });
+      if (!bp) return;
+      var bh = null, bh2 = 52;
+      houses.forEach(function (h0) { if (h0.ham || h0.kind) return; var d0 = Math.hypot(h0.x - bp.x, h0.y - bp.y); if (d0 < bh2) { bh2 = d0; bh = h0; } });
+      if (bh) { bh.kind = 'inn'; bh.name = 'Auberge ' + INNS[innN % INNS.length]; innN++; }
+    });
+    var hallH = null, hallD = mr + 48;
+    houses.forEach(function (h0) { if (h0.ham || h0.kind) return; var d0 = Math.hypot(h0.x - P.x, h0.y - P.y); if (d0 < hallD) { hallD = d0; hallH = h0; } });
+    if (hallH) { hallH.kind = 'halle'; hallH.name = 'La Halle'; }
+    if (sizeKey !== 'bourg') {
+      var hosH = null, hosD = cath.L * 0.5 + 60;
+      houses.forEach(function (h0) { if (h0.ham || h0.kind) return; var d0 = Math.hypot(h0.x - cath.x, h0.y - cath.y); if (d0 < hosD) { hosD = d0; hosH = h0; } });
+      if (hosH) { hosH.kind = 'hospital'; hosH.name = 'Hôtel-Dieu'; }
+    }
+
     /* champs */
     var rf2 = sub('fields'), fph = [rf2() * TAU, rf2() * TAU];
     var fp1 = rf2() * TAU, fp2 = rf2() * TAU, fp3 = rf2() * TAU, fp4 = rf2() * TAU;
@@ -1835,6 +1914,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
       var fw = 34 + rf2() * 46, fh = 24 + rf2() * 26;
       if (nd(fx, fy) < 1.4) continue;
       if (hills.length && inHill(fx, fy, Math.hypot(fw, fh) / 2 + 2)) continue;
+      if (blocks.some(function (b0) { return Math.hypot(b0.x - fx, b0.y - fy) < b0.r + Math.hypot(fw, fh) / 2; })) continue;
       if (psegs.length && nearestSeg(psegs, fx, fy).d < Math.hypot(fw, fh) / 2 + 3) continue;
       var dn = Math.hypot(fx - C.x, fy - C.y) / R;
       if (rf2() > (dn <= 2.6 ? 0.95 : 0.3)) continue;
@@ -1881,6 +1961,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         if (tn.d < tn.seg.w / 2 + 6) continue;
         if (hHit(gx, gy, 6)) continue;
         if (hills.length && inHill(gx, gy, 3)) continue;
+        if (blocks.some(function (b0) { return Math.hypot(b0.x - gx, b0.y - gy) < b0.r + 3; })) continue;
         if (psegs.length && nearestSeg(psegs, gx, gy).d < 7) continue;
         if (yards.some(function (y1) { return Math.hypot(y1.x - gx, y1.y - gy) < Math.hypot(y1.w, y1.h) / 2 + 8; })) continue;
         var inField = false;
@@ -1897,6 +1978,83 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     var rsp = sub('specks'), specks = [];
     for (var s = 0; s < 320; s++) specks.push({ x: rsp() * W, y: rsp() * H, l: 2 + rsp() * 3 });
     M.specks = specks;
+
+    /* lieux cliquables */
+    var rpo = sub('pois'), pois = [];
+    function addPoi(x, y, r, t, st, d) { pois.push({ x: x, y: y, r: r, t: t, s: st, d: d }); }
+    var SAINTS = ['Saint-Étienne', 'Saint-Pierre', 'Notre-Dame', 'Saint-Martin', 'Saint-Jean', 'Saint-Michel', 'Saint-Gilles', 'Saint-Sernin', 'Saint-Nazaire', 'Sainte-Foy', 'Saint-Vincent', 'Saint-Maurice', 'Saint-Eutrope', 'Sainte-Radegonde'];
+    var LORDS = ['de Montfort', 'de Beaumont', 'de Rochefort', 'de Clairvaux', 'de Blanchefort', 'de Valcourt', 'de Lusignan', 'de Montbrun', 'de Saint-Aubin', 'de Castelmaure', 'de Hautefeuille', 'de Vauclair'];
+    shuffle(SAINTS, rpo); shuffle(LORDS, rpo);
+    var lordFam = LORDS[0];
+    M.lord = lordFam;
+    var isB = sizeKey === 'bourg';
+    addPoi(cath.x, cath.y, cath.L * 0.5, (isB ? 'Église ' : 'Cathédrale ') + SAINTS[0], isB ? 'Église paroissiale' : 'Siège de l’évêque',
+      isB ? 'Le clocher sert de guet et sonne les heures du village. Les registres des baptêmes y sont tenus par le curé.' : 'Chantier de plusieurs générations, la cathédrale domine la ville. Le chapitre y règle les fêtes, les foires et une bonne part des litiges.');
+    var ctype = castle.type;
+    addPoi(castle.x, castle.y, castle.S * 0.7, ctype === 'chateau' ? 'Château ' + lordFam : ctype === 'manoir' ? 'Manoir ' + lordFam : 'Maison du bailli', ctype === 'chateau' ? 'Résidence seigneuriale' : ctype === 'manoir' ? 'Petit manoir fortifié' : 'Justice et fiscalité',
+      ctype === 'chateau' ? 'Le seigneur ' + lordFam + ' y tient sa cour, sa garnison et la haute justice du pays.' : ctype === 'manoir' ? 'Demeure d’un petit seigneur ' + lordFam + ', qui perçoit les redevances des environs.' : 'Le bailli y rend la justice du seigneur, lève les taxes et conserve les rôles de la commune.');
+    if (bailli) addPoi(bailli.x, bailli.y, bailli.S * 0.7, 'Maison du bailli', 'Justice et fiscalité', 'Le bailli y rend la justice du seigneur, lève les taxes et conserve les rôles de la commune.');
+    var DAYS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+    addPoi(P.x, P.y, mr + 6, 'Place du marché', 'Commerce', 'Marché chaque ' + pick(rpo, DAYS) + ', foire annuelle à la Saint-' + pick(rpo, ['Jean', 'Michel', 'Martin', 'Luc']) + '. Le péage des marchands s’y paie sous l’œil du bailli.');
+    yards.forEach(function (y1, yi) {
+      addPoi(y1.x, y1.y, Math.max(y1.w, y1.h) * 0.55, y1.chapel ? 'Chapelle ' + SAINTS[1 + (yi % (SAINTS.length - 1))] : 'Cimetière', y1.chapel ? 'Chapelle et cimetière' : 'Terre bénie',
+        y1.chapel ? 'Chapelle de campagne hors les murs, où l’on enterre les pauvres et les voyageurs.' : 'Terre bénite près de la cathédrale, où reposent notables et bourgeois.');
+    });
+    var MILLERS = ['du Gué', 'du Prieur', 'Neuf', 'Rouge', 'de la Combe', 'du Seigneur', 'Haut'];
+    shuffle(MILLERS, rpo);
+    M.mills.forEach(function (m0, mi) {
+      addPoi(m0.x, m0.y, 12, 'Moulin ' + MILLERS[mi % MILLERS.length], 'Moulin à vent', 'Le meunier y moud le grain du pays contre un droit de mouture dû au seigneur.');
+    });
+    M.bridges.forEach(function (b0) {
+      addPoi(b0.x, b0.y, 12, b0.wood ? 'Pont de bois' : 'Pont de pierre', b0.wood ? 'Franchissement' : 'Ouvrage en pierre', b0.wood ? 'Pont de charpente, à entretenir sans cesse ; un péage peut y être levé.' : 'Pont de pierre à arches, ouvrage durable qui fait la fierté de la ville.');
+    });
+    if (useWalls) {
+      M.gateIdx.forEach(function (gi) {
+        var Gv = M.verts[gi];
+        addPoi(Gv.x, Gv.y, 14, 'Porte de ' + cityName(rpo), 'Porte fortifiée', 'Fermée à la nuit tombée. Les marchands y paient l’octroi et les gardes y contrôlent les entrées.');
+      });
+    }
+    if (harbor && harbor.ex && harbor.ex[0]) addPoi(harbor.ex[0].x, harbor.ex[0].y, Math.max(16, harbor.ex[0].r * 0.7), 'Port', 'Quais et embarcadères', 'Les barques de pêche et les navires marchands y déchargent sel, poisson et vin.');
+    houses.forEach(function (h0) {
+      if (h0.kind === 'inn') addPoi(h0.x, h0.y, 11, h0.name, 'Auberge', 'Gîte des voyageurs et des marchands, avec écurie et table d’hôte. On y entend toutes les nouvelles.');
+      else if (h0.kind === 'halle') addPoi(h0.x, h0.y, 11, 'La Halle', 'Halle du marché', 'Halle couverte où l’on vend le grain et le drap les jours de marché.');
+      else if (h0.kind === 'hospital') addPoi(h0.x, h0.y, 11, 'Hôtel-Dieu', 'Hôpital', 'Les malades pauvres et les pèlerins y sont soignés par des religieuses.');
+    });
+    hamlets.forEach(function (hm) { addPoi(hm.x, hm.y, 30, hm.name, 'Village satellite', 'Hameau d’environ ' + hm.n + ' feux, qui vit des champs et des bois voisins et fournit la ville en vivres.'); });
+    if (M.abbey) addPoi(M.abbey.x, M.abbey.y, 32, 'Abbaye ' + SAINTS[2], 'Abbaye', 'Les moines y prient, copient des livres, élèvent des abeilles et accueillent les voyageurs.');
+    if (M.lepro) addPoi(M.lepro.x, M.lepro.y, 24, 'Léproserie', 'Maladrerie hors les murs', 'Les lépreux y vivent à l’écart, nourris par les aumônes de la ville.');
+    if (M.gibbet) addPoi(M.gibbet.x, M.gibbet.y, 12, 'Potence', 'Justice du seigneur', 'On y exécute les condamnés, un peu à l’écart des routes, pour l’exemple.');
+    M.pois = pois;
+
+    /* noms de rues (affichés si l'option est cochée) */
+    var rsn = sub('streetnames'), snames = [];
+    var RUES = ['Grand-Rue', 'Rue des Tanneurs', 'Rue de la Boucherie', 'Rue des Forges', 'Rue du Moulin', 'Rue Saint-Jacques', 'Rue des Drapiers', 'Rue du Four', 'Rue de l’Étoile', 'Rue des Tisserands', 'Rue du Puits', 'Rue des Bouchers', 'Rue de la Monnaie', 'Rue des Potiers'];
+    shuffle(RUES, rsn);
+    var usedN = 0, sorted = M.streets.filter(function (st) { return st.kind === 'main'; });
+    sorted.forEach(function (st) {
+      if (usedN >= (sizeKey === 'bourg' ? 3 : sizeKey === 'ville' ? 5 : 7)) return;
+      var best = null, bs = 1e9, pp = st.pts;
+      for (var i0 = 0; i0 < pp.length - 1; i0++) {
+        var j0 = i0 + 1, A0 = pp[i0], B0 = pp[j0], L0 = 0;
+        while (j0 < pp.length - 1 && Math.hypot(pp[j0].x - A0.x, pp[j0].y - A0.y) < 72) j0++;
+        B0 = pp[j0]; L0 = Math.hypot(B0.x - A0.x, B0.y - A0.y);
+        if (L0 < 62) continue;
+        var dev = 0;
+        for (var k1 = i0 + 1; k1 < j0; k1++) dev = Math.max(dev, distSeg(pp[k1].x, pp[k1].y, A0.x, A0.y, B0.x, B0.y));
+        if (dev > 5) continue;
+        var mx0 = (A0.x + B0.x) / 2, my0 = (A0.y + B0.y) / 2, n0 = nd(mx0, my0);
+        if (n0 < 0.3 || n0 > 0.92) continue;
+        if (Math.hypot(mx0 - P.x, my0 - P.y) < mr + 30) continue;
+        if (harbor && harbor.ex.some(function (e0) { return Math.hypot(e0.x - mx0, e0.y - my0) < e0.r; })) continue;
+        var sc0 = Math.abs(n0 - 0.6);
+        if (sc0 < bs) { bs = sc0; best = { x: mx0, y: my0, ang: Math.atan2(B0.y - A0.y, B0.x - A0.x), L: L0 }; }
+      }
+      if (best) {
+        var an2 = best.ang; if (an2 > Math.PI / 2) an2 -= Math.PI; if (an2 < -Math.PI / 2) an2 += Math.PI;
+        snames.push({ x: best.x, y: best.y, ang: an2, t: RUES[usedN % RUES.length] }); usedN++;
+      }
+    });
+    M.streetNames = snames;
 
     /* nombres */
     M.nGates = useWalls ? ng : 0;
@@ -2173,10 +2331,13 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     M.houses.forEach(function (h) {
       ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.ang);
       ctx.fillStyle = tk.shadow; ctx.globalAlpha = 0.3; ctx.fillRect(-h.w / 2 + 2, -h.d / 2 + 2.5, h.w, h.d); ctx.globalAlpha = 1;
-      ctx.fillStyle = tk['roof' + h.tone]; ctx.fillRect(-h.w / 2, -h.d / 2, h.w, h.d);
+      ctx.fillStyle = tk[({ inn: 'roof2', halle: 'wood', hospital: 'stone', lepro: 'roof3' })[h.kind] || ('roof' + h.tone)]; ctx.fillRect(-h.w / 2, -h.d / 2, h.w, h.d);
       ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fillRect(-h.w / 2, -h.d / 2, h.w, h.d / 2);
       ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 0.8; ctx.strokeRect(-h.w / 2, -h.d / 2, h.w, h.d);
       ctx.beginPath(); ctx.moveTo(-h.w / 2, 0); ctx.lineTo(h.w / 2, 0); ctx.stroke();
+      if (h.kind === 'inn') { ctx.fillStyle = tk.light; ctx.beginPath(); ctx.arc(h.w / 2 + 3, 0, 2.4, 0, TAU); ctx.fill(); ctx.stroke(); }
+      else if (h.kind === 'halle') { ctx.fillStyle = tk.wall; [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (c) { ctx.fillRect(c[0] * (h.w / 2 - 1.5) - 1, c[1] * (h.d / 2 - 1.5) - 1, 2, 2); }); }
+      else if (h.kind === 'hospital') { ctx.strokeStyle = tk.wall; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(0, -h.d / 2 + 1.5); ctx.lineTo(0, h.d / 2 - 1.5); ctx.moveTo(-3.5, 0); ctx.lineTo(3.5, 0); ctx.stroke(); }
       ctx.restore();
     });
 
@@ -2210,6 +2371,30 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         ctx.fillStyle = tk.wall; ctx.strokeStyle = tk.walledge; ctx.lineWidth = 1.6;
         ctx.beginPath(); ctx.arc(vs[i].x, vs[i].y, vs[i].corner ? 7.5 : 5.5, 0, TAU); ctx.fill(); ctx.stroke();
       }
+    }
+
+    /* abbaye, léproserie, potence */
+    if (M.abbey) {
+      var A = M.abbey;
+      ctx.save(); ctx.translate(A.x, A.y); ctx.rotate(A.ang);
+      ctx.fillStyle = tk.shadow; ctx.globalAlpha = 0.3; ctx.fillRect(-A.w / 2 + 3, -A.h / 2 + 3, A.w, A.h); ctx.globalAlpha = 1;
+      ctx.fillStyle = tk.stone; ctx.strokeStyle = tk.walledge; ctx.lineWidth = 1.6;
+      ctx.fillRect(-A.w / 2, -A.h / 2, A.w, A.h); ctx.strokeRect(-A.w / 2, -A.h / 2, A.w, A.h);
+      ctx.fillStyle = tk.land; ctx.lineWidth = 1; ctx.fillRect(-A.w / 2 + 9, -A.h / 2 + 9, A.w - 18, A.h - 18); ctx.strokeRect(-A.w / 2 + 9, -A.h / 2 + 9, A.w - 18, A.h - 18);
+      ctx.beginPath(); ctx.arc(0, 0, 3, 0, TAU); ctx.fillStyle = tk.water; ctx.fill(); ctx.stroke();
+      ctx.fillStyle = tk.stone; ctx.lineWidth = 1.6; ctx.fillRect(-A.w / 2 - 6, -A.h / 2 - 13, A.w * 0.72, 13); ctx.strokeRect(-A.w / 2 - 6, -A.h / 2 - 13, A.w * 0.72, 13);
+      ctx.fillStyle = tk.wall; ctx.beginPath(); ctx.arc(-A.w / 2 - 6, -A.h / 2 - 6.5, 6, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+    if (M.lepro) {
+      ctx.fillStyle = tk.roof3; ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(M.lepro.x, M.lepro.y, 4, 0, TAU); ctx.fill(); ctx.stroke();
+    }
+    if (M.gibbet) {
+      ctx.save(); ctx.translate(M.gibbet.x, M.gibbet.y);
+      ctx.strokeStyle = tk.ink; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-4, 5); ctx.lineTo(-4, -7); ctx.lineTo(5, -7); ctx.moveTo(-4, -4); ctx.lineTo(-1, -7); ctx.moveTo(3, -7); ctx.lineTo(3, -2); ctx.stroke();
+      ctx.fillStyle = tk.ink; ctx.beginPath(); ctx.arc(3, -1, 1.5, 0, TAU); ctx.fill();
+      ctx.restore();
     }
 
     /* cimetières */
@@ -2331,6 +2516,10 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     if (M.bailli) label('Bailli', M.bailli.x, M.bailli.y - M.bailli.S * 0.5 - 10, 12, tk);
     label('Marché', M.marketLabel.x, M.marketLabel.y, 12, tk);
     M.hamlets.forEach(function (hm) { label(hm.name, hm.x, hm.ly, 11, tk); });
+    if (M.abbey) label('Abbaye', M.abbey.x, M.abbey.y + M.abbey.h / 2 + 14, 11, tk);
+    if (M.lepro) label('Léproserie', M.lepro.x, M.lepro.y + 30, 11, tk);
+    if (M.gibbet) label('Potence', M.gibbet.x, M.gibbet.y + 16, 10, tk);
+    if (M.showNames) M.streetNames.forEach(function (sn) { label(sn.t, sn.x, sn.y, 11, tk, { rot: sn.ang, font: 'italic 500 11px ' + BODY }); });
     if (M.harbor) {
       var Hh = M.harbor, SPt = M.seaPt;
       if (Hh.size !== 'bourg') { var lp = SPt(Hh.sh, Hh.size === 'cite' ? 138 : 92); label('Port', lp.x, lp.y, 13, tk, { color: tk.waterink, halo: tk.water }); }
@@ -2422,7 +2611,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
 
   /* ---------- interface ---------- */
   var $ = function (id) { return document.getElementById(id); };
-  var state = { seed: 'k7f3q2', size: 'ville', river: true, walls: true, coast: false, hills: false, ham: false, layout: 'auto' };
+  var state = { seed: 'k7f3q2', size: 'ville', river: true, walls: true, coast: false, hills: false, ham: false, names: false, layout: 'auto' };
   var LCHAR = { auto: '', radial: 'c', organic: 'o', bastide: 'b', linear: 'l' };
   var model = null, lastHash = '';
 
@@ -2432,11 +2621,11 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     return s;
   }
   function cleanSeed(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 24); }
-  function hashOf() { return state.size + '-' + (state.river ? 'r' : 'x') + (state.walls ? 'm' : 'x') + LCHAR[state.layout] + (state.coast ? 'k' : '') + (state.hills ? 'h' : '') + (state.ham ? 'v' : '') + '-' + state.seed; }
+  function hashOf() { return state.size + '-' + (state.river ? 'r' : 'x') + (state.walls ? 'm' : 'x') + LCHAR[state.layout] + (state.coast ? 'k' : '') + (state.hills ? 'h' : '') + (state.ham ? 'v' : '') + (state.names ? 'n' : '') + '-' + state.seed; }
   function parseHash() {
-    var m = /^#(bourg|ville|cite)-([rx])([mx])([cobl]?)([khv]*)-([a-z0-9]{1,24})$/.exec(location.hash || '');
+    var m = /^#(bourg|ville|cite)-([rx])([mx])([cobl]?)([khvn]*)-([a-z0-9]{1,24})$/.exec(location.hash || '');
     if (!m) return false;
-    state.size = m[1]; state.river = m[2] === 'r'; state.walls = m[3] === 'm'; state.coast = m[5].indexOf('k') >= 0; state.hills = m[5].indexOf('h') >= 0; state.ham = m[5].indexOf('v') >= 0; state.seed = m[6];
+    state.size = m[1]; state.river = m[2] === 'r'; state.walls = m[3] === 'm'; state.coast = m[5].indexOf('k') >= 0; state.hills = m[5].indexOf('h') >= 0; state.ham = m[5].indexOf('v') >= 0; state.names = m[5].indexOf('n') >= 0; state.seed = m[6];
     state.layout = 'auto';
     for (var key in LCHAR) { if (LCHAR[key] && LCHAR[key] === m[4]) state.layout = key; }
     return true;
@@ -2452,6 +2641,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     $('opt-coast').checked = state.coast;
     $('opt-hills').checked = state.hills;
     $('opt-ham').checked = state.ham;
+    $('opt-names').checked = state.names;
     $('st-hills').textContent = model.hills.length || '—';
     $('st-hamlets').textContent = model.hamlets.length || '—';
     $('st-port').textContent = model.harbor ? ({ bourg: 'Plage, jetée', ville: 'Quai, chantier', cite: 'Docks, phare' })[state.size] : '—';
@@ -2474,6 +2664,8 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
 
   function render() {
     model = generate(state.seed, state.size, state.river, state.walls, state.layout, state.coast, state.hills, state.ham);
+    model.showNames = state.names;
+    hidePoi();
     draw(model, readTokens());
     syncUI();
   }
@@ -2490,6 +2682,26 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
   $('opt-coast').addEventListener('change', function (e) { state.coast = e.target.checked; render(); });
   $('opt-hills').addEventListener('change', function (e) { state.hills = e.target.checked; render(); });
   $('opt-ham').addEventListener('change', function (e) { state.ham = e.target.checked; render(); });
+  $('opt-names').addEventListener('change', function (e) { state.names = e.target.checked; model.showNames = state.names; draw(model, readTokens()); syncUI(); });
+  /* fiche d'un lieu au clic ou au toucher */
+  var poiBox = $('poi'), downAt = null;
+  function hidePoi() { poiBox.hidden = true; }
+  poiBox.querySelector('.x').addEventListener('click', hidePoi);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hidePoi(); });
+  canvas.addEventListener('pointerdown', function (e) { downAt = { x: e.clientX, y: e.clientY }; });
+  canvas.addEventListener('click', function (e) {
+    if (!model || !model.pois) return;
+    if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 6) return;
+    var rc = canvas.getBoundingClientRect(), k = W / rc.width;
+    var mx = (e.clientX - rc.left) * k, my = (e.clientY - rc.top) * k, tol = 10 * k, best = null, bs = 1e9;
+    model.pois.forEach(function (o) { var d = Math.hypot(o.x - mx, o.y - my) - o.r; if (d < tol && d < bs) { bs = d; best = o; } });
+    if (!best) { hidePoi(); return; }
+    poiBox.querySelector('.pt').textContent = best.t; poiBox.querySelector('.ps').textContent = best.s; poiBox.querySelector('.pd').textContent = best.d;
+    poiBox.hidden = false;
+    var sr = poiBox.parentNode.getBoundingClientRect(), px = e.clientX - sr.left + 12, py = e.clientY - sr.top + 12;
+    px = Math.max(8, Math.min(px, sr.width - poiBox.offsetWidth - 8)); py = Math.max(8, Math.min(py, sr.height - poiBox.offsetHeight - 8));
+    poiBox.style.left = px + 'px'; poiBox.style.top = py + 'px';
+  });
   /* à propos */
   var dlg = $('about');
   $('btn-help').addEventListener('click', function () { if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', ''); });
