@@ -403,7 +403,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
       </div>
     </aside>
   </div>
-  <footer class="foot">© <span id="cr-year">2026</span> Guillaume Dumas · Atlas des Bourgs. Tous droits réservés. · <span class="ver">v12 · 04/11/2026</span></footer>
+  <footer class="foot">© <span id="cr-year">2026</span> Guillaume Dumas · Atlas des Bourgs. Tous droits réservés. · <span class="ver">v13 · 04/11/2026</span></footer>
 </div>
 
 <dialog id="sheet-dlg" aria-labelledby="sheet-title">
@@ -415,7 +415,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
 <dialog id="about" aria-labelledby="about-title">
   <h2 id="about-title">À propos</h2>
   <div id="about-body"></div>
-  <p class="about-ver">Atlas des Bourgs, version <span class="ver">v12 · 04/11/2026</span></p>
+  <p class="about-ver">Atlas des Bourgs, version <span class="ver">v13 · 04/11/2026</span></p>
   <div class="dlg-actions"><button type="button" id="about-close" class="primary">Fermer</button></div>
 </dialog>
 
@@ -861,12 +861,12 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         }
       } else {
         var wb = rg() * TAU;
-        for (k = 0; k < ng; k++) want.push(wb + k * TAU / ng + (rg() - 0.5) * TAU / ng * 0.7);
+        for (k = 0; k < ng; k++) want.push(wb + k * TAU / ng + (rg() - 0.5) * TAU / ng * 0.38);
       }
       want.forEach(function (wa2) {
         var bi = -1, bd = 1e9;
         verts.forEach(function (v2, ix) { var d = angDiff(v2.a, wa2); if (d < bd && gateIdx.indexOf(ix) < 0 && (!wet || riverDist(v2.x, v2.y) >= rw / 2 + 18)) { bd = d; bi = ix; } });
-        if (bi >= 0) gateIdx.push(bi);
+        if (bi >= 0 && !gateIdx.some(function (g1) { return angDiff(verts[g1].a, verts[bi].a) < 0.62; })) gateIdx.push(bi);
       });
       /* pas de grand secteur de rempart sans porte : on ajoute une porte au milieu de tout écart supérieur à ~100° */
       if (layout !== 'linear') {
@@ -880,6 +880,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
           var bi2 = -1, bd2 = 1e9;
           verts.forEach(function (v2, ix) { var d = angDiff(v2.a, bigGap); if (d < bd2 && gateIdx.indexOf(ix) < 0 && (!wet || riverDist(v2.x, v2.y) >= rw / 2 + 18)) { bd2 = d; bi2 = ix; } });
           if (bi2 < 0 || bd2 > 0.5) break;
+          if (gateIdx.some(function (g1) { return angDiff(verts[g1].a, verts[bi2].a) < 0.62; })) break;
           gateIdx.push(bi2);
         }
       }
