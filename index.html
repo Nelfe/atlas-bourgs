@@ -175,7 +175,11 @@ details.saved summary { cursor: pointer; font: 500 12px/1 var(--font-body); lett
 #saved-list li { display: flex; gap: 6px; align-items: center; }
 #saved-list button.open { flex: 1; text-align: left; min-height: 36px; padding: 0 10px; font-size: 15px; }
 #saved-list button.del { width: 36px; min-height: 36px; padding: 0; }
-dialog#sheet-dlg { max-width: min(560px, calc(100vw - 24px)); width: 100%; max-height: calc(100vh - 32px); overflow: auto; padding: 22px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+html.lock, html.lock body { overflow: hidden; }
+dialog#sheet-dlg { max-width: min(560px, calc(100vw - 24px)); width: 100%; max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); overflow: hidden; overscroll-behavior: contain; padding: 18px 18px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+dialog#sheet-dlg[open] { display: flex; flex-direction: column; }
+#sheet-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-right: 4px; }
+dialog#sheet-dlg .dlg-actions { flex: none; padding-top: 10px; border-top: 1px solid var(--line); }
 dialog#sheet-dlg::backdrop { background: rgba(0, 0, 0, 0.45); }
 dialog#sheet-dlg h2 { font: 400 34px/1.1 var(--font-display); margin: 0 0 4px; }
 dialog#sheet-dlg h3 { font: 500 12px/1 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px; }
@@ -399,7 +403,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
       </div>
     </aside>
   </div>
-  <footer class="foot">© <span id="cr-year">2026</span> Guillaume Dumas · Atlas des Bourgs. Tous droits réservés. · <span class="ver">v11 · 04/11/2026</span></footer>
+  <footer class="foot">© <span id="cr-year">2026</span> Guillaume Dumas · Atlas des Bourgs. Tous droits réservés. · <span class="ver">v12 · 04/11/2026</span></footer>
 </div>
 
 <dialog id="sheet-dlg" aria-labelledby="sheet-title">
@@ -411,7 +415,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
 <dialog id="about" aria-labelledby="about-title">
   <h2 id="about-title">À propos</h2>
   <div id="about-body"></div>
-  <p class="about-ver">Atlas des Bourgs, version <span class="ver">v11 · 04/11/2026</span></p>
+  <p class="about-ver">Atlas des Bourgs, version <span class="ver">v12 · 04/11/2026</span></p>
   <div class="dlg-actions"><button type="button" id="about-close" class="primary">Fermer</button></div>
 </dialog>
 
@@ -3047,10 +3051,13 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     sh.rows.forEach(function (r) { var dt = el('dt', r[0], dl), dd = el('dd', r[1], dl); dt.style.cssText = 'border:0;padding:0;color:var(--muted)'; dd.style.cssText = 'border:0;padding:0;font:inherit;text-align:left'; });
     el('h3', 'Rumeurs'); var u1 = el('ul'); sh.rumors.forEach(function (r) { el('li', r, u1); });
     el('h3', 'Personnages'); var u2 = el('ul'); sh.npcs.forEach(function (n) { var li = el('li', '', u2); var b = el('strong', n.n + ' ', li); el('span', '(' + n.r + ') — ' + n.t, li); });
+    document.documentElement.classList.add('lock');
+    body.scrollTop = 0;
     if (shDlg.showModal) shDlg.showModal(); else shDlg.setAttribute('open', '');
   }
+  shDlg.addEventListener('close', function () { document.documentElement.classList.remove('lock'); });
   $('btn-sheet').addEventListener('click', function () { if (model) openSheet(); });
-  $('sheet-close').addEventListener('click', function () { if (shDlg.close) shDlg.close(); else shDlg.removeAttribute('open'); });
+  $('sheet-close').addEventListener('click', function () { if (shDlg.close) shDlg.close(); else { shDlg.removeAttribute('open'); document.documentElement.classList.remove('lock'); } });
   $('sheet-copy').addEventListener('click', function () {
     var t = sheetText();
     try { navigator.clipboard.writeText(t).then(function () { $('sheet-copy').textContent = 'Copié'; setTimeout(function () { $('sheet-copy').textContent = 'Copier le texte'; }, 1600); }, function () { }); } catch (e) { }
