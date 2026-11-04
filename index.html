@@ -2006,7 +2006,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
       var fx = rf2() * W, fy = rf2() * H;
       var fw = 34 + rf2() * 46, fh = 24 + rf2() * 26;
       if (nd(fx, fy) < 1.4) continue;
-      if (hills.length && inHill(fx, fy, Math.hypot(fw, fh) / 2 + 2)) continue;
+      if ((hills.length || marshes.length) && inHill(fx, fy, Math.hypot(fw, fh) / 2 + 8)) continue;
       if (blocks.some(function (b0) { return Math.hypot(b0.x - fx, b0.y - fy) < b0.r + Math.hypot(fw, fh) / 2; })) continue;
       if (psegs.length && nearestSeg(psegs, fx, fy).d < Math.hypot(fw, fh) / 2 + 3) continue;
       var dn = Math.hypot(fx - C.x, fy - C.y) / R;
@@ -2061,7 +2061,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         var tn = nearestSeg(segs, gx, gy);
         if (tn.d < tn.seg.w / 2 + 6) continue;
         if (hHit(gx, gy, 6)) continue;
-        if (hills.length && inHill(gx, gy, 3)) continue;
+        if ((hills.length || marshes.length) && inHill(gx, gy, 4)) continue;
         if (blocks.some(function (b0) { return Math.hypot(b0.x - gx, b0.y - gy) < b0.r + 3; })) continue;
         if (psegs.length && nearestSeg(psegs, gx, gy).d < 7) continue;
         if (yards.some(function (y1) { return Math.hypot(y1.x - gx, y1.y - gy) < Math.hypot(y1.w, y1.h) / 2 + 8; })) continue;
