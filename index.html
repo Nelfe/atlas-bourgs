@@ -321,6 +321,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
   <div class="layout">
     <figure class="stage">
       <canvas id="map" width="1200" height="800" role="img" aria-label="Carte d'une ville médiévale"></canvas>
+      <div id="note" class="poi" hidden role="dialog" aria-label="Note"><button type="button" class="x" aria-label="Fermer">×</button><p class="ps" id="note-h">Note</p><textarea id="note-t" rows="4" placeholder="Votre note…" style="width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--fg)"></textarea><div style="margin-top:8px"><button type="button" id="note-del">Supprimer la note</button></div></div>
       <div id="poi" class="poi" hidden role="dialog" aria-label="Détail du lieu"><button type="button" class="x" aria-label="Fermer">×</button><p class="pt"></p><p class="ps"></p><p class="pd"></p></div>
       <div class="zoom" role="group" aria-label="Zoom de la carte">
         <button type="button" id="zoom-in" aria-label="Zoomer">+</button>
@@ -377,12 +378,16 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
           <li data-f="terr"><i style="background:var(--m-water);opacity:.55"></i>Marais, gué</li>
           <li data-f="terr"><i style="background:var(--m-field1);border-color:var(--m-conifer)"></i>Vigne</li>
           <li data-f="siege"><i style="background:var(--m-roof1)"></i>Camp assiégeant</li>
+          <li data-f="ham"><i style="background:var(--m-roof1)"></i>Ferme</li>
+          <li data-f="ham"><i style="background:var(--m-stone)"></i>Ruines, carrière</li>
+          <li data-f="ham"><i style="background:var(--m-ink)"></i>Mine</li>
           <li data-f="hills"><i style="background:color-mix(in srgb, var(--m-landdark) 60%, var(--m-land))"></i>Colline</li>
           <li data-f="ham"><i style="background:var(--m-roof0)"></i>Village satellite</li>
         </ul>
       </div>
       <div>
         <button type="button" id="btn-save" style="width:100%">★ Garder cette carte</button>
+        <button type="button" id="btn-pin" style="width:100%;margin-top:8px" aria-pressed="false">📍 Poser une note</button>
         <details class="saved" id="saved" style="margin-top:10px">
           <summary>Mes cartes (<span id="saved-n">0</span>)</summary>
           <ul id="saved-list"></ul>
@@ -403,7 +408,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
       </div>
     </aside>
   </div>
-  <footer class="foot">© <span id="cr-year">2026</span> Guillaume Dumas · Atlas des Bourgs. Tous droits réservés. · <span class="ver">v13 · 04/11/2026</span></footer>
+  <footer class="foot">© <span id="cr-year">2026</span> Guillaume Dumas · Atlas des Bourgs. Tous droits réservés. · <span class="ver">v14 · 05/11/2026</span></footer>
 </div>
 
 <dialog id="sheet-dlg" aria-labelledby="sheet-title">
@@ -415,7 +420,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
 <dialog id="about" aria-labelledby="about-title">
   <h2 id="about-title">À propos</h2>
   <div id="about-body"></div>
-  <p class="about-ver">Atlas des Bourgs, version <span class="ver">v13 · 04/11/2026</span></p>
+  <p class="about-ver">Atlas des Bourgs, version <span class="ver">v14 · 05/11/2026</span></p>
   <div class="dlg-actions"><button type="button" id="about-close" class="primary">Fermer</button></div>
 </dialog>
 
@@ -1957,7 +1962,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
       }
       return null;
     }
-    M.abbey = null; M.lepro = null; M.gibbet = null;
+    M.abbey = null; M.lepro = null; M.gibbet = null; M.rural = [];
     if (useHam) {
       var rou = sub('outlying');
       if (sizeKey !== 'bourg') {
@@ -1977,6 +1982,28 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
       }
       var gb = outSpot(8, 1.35, 2.3, rou, 14);
       if (gb) { M.gibbet = gb; blocks.push({ x: gb.x, y: gb.y, r: 10 }); }
+      var ruFarms = ['La Grange', 'La Métairie', 'Ferme du Pré', 'La Borde', 'Ferme des Aulnes', 'La Closerie'];
+      shuffle(ruFarms, rou);
+      var ruFn = sizeKey === 'bourg' ? 1 + (rou() < 0.5 ? 1 : 0) : 2 + (rou() < 0.5 ? 1 : 0);
+      for (var ruI = 0; ruI < ruFn; ruI++) {
+        var fm = outSpot(26, 1.55, 3.0, rou, 50);
+        if (fm) { fm.kind = 'farm'; fm.name = ruFarms[ruI % ruFarms.length]; M.rural.push(fm); blocks.push({ x: fm.x, y: fm.y, r: 30 }); }
+      }
+      var ruin = outSpot(22, 1.8, 3.1, rou, 170);
+      if (ruin) { ruin.kind = 'ruin'; ruin.name = 'Ruines'; M.rural.push(ruin); blocks.push({ x: ruin.x, y: ruin.y, r: 24 }); }
+      if (sizeKey !== 'bourg' || rou() < 0.5) {
+        var qry = outSpot(30, 1.8, 3.1, rou, 150);
+        if (qry) { qry.kind = 'quarry'; qry.name = 'Carrière'; M.rural.push(qry); blocks.push({ x: qry.x, y: qry.y, r: 32 }); }
+      }
+      if (hills.length) {
+        var ruH = hills.slice(); shuffle(ruH, rou);
+        for (var ruM = 0; ruM < ruH.length && !M.rural.some(function (o) { return o.kind === 'mine'; }); ruM++) {
+          var hh0 = ruH[ruM], ma0 = Math.atan2(hh0.y - C.y, hh0.x - C.x), mx1 = hh0.x + Math.cos(ma0) * hh0.rx * 0.78, my1 = hh0.y + Math.sin(ma0) * hh0.ry * 0.78;
+          if (mx1 < 24 || mx1 > W - 24 || my1 < 24 || my1 > H - 24 || inCorner(mx1, my1, 16, 16)) continue;
+          if (wet && riverDist(mx1, my1) < rw / 2 + 14) continue;
+          M.rural.push({ x: mx1, y: my1, ang: ma0, kind: 'mine', name: 'Mine' });
+        }
+      }
     }
 
     /* édifices particuliers repérés parmi les maisons : auberges aux entrées, halle, hôtel-Dieu */
@@ -2134,6 +2161,12 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     if (M.gibbet) addPoi(M.gibbet.x, M.gibbet.y, 12, 'Potence', 'Justice du seigneur', 'On y exécute les condamnés, un peu à l’écart des routes, pour l’exemple.');
     M.fords.forEach(function (fd) { addPoi(fd.x, fd.y, rw / 2 + 12, 'Gué', 'Passage à gué', 'Les charrettes et les troupeaux traversent ici quand les eaux sont basses. Après les orages, le passage devient dangereux.'); });
     marshes.forEach(function (ms) { addPoi(ms.x, ms.y, Math.min(ms.rx, ms.ry), 'Marais', 'Terres humides', 'Terrain spongieux, refuge des hérons et des fièvres. On y coupe roseaux et tourbe, mais on s’y perd facilement.'); });
+    (M.rural || []).forEach(function (r0) {
+      if (r0.kind === 'farm') addPoi(r0.x, r0.y, 26, r0.name, 'Ferme isolée', 'Maison, grange et enclos. Le fermier doit des redevances au seigneur et vend ses surplus au marché.');
+      else if (r0.kind === 'ruin') addPoi(r0.x, r0.y, 18, 'Ruines d’une tour', 'Vestiges', 'Tour effondrée, reste d’un ancien château. Les gens du pays y voient des fantômes et des trésors cachés.');
+      else if (r0.kind === 'quarry') addPoi(r0.x, r0.y, 26, 'Carrière', 'Pierre à bâtir', 'La pierre des remparts et de l’église vient d’ici. Les carriers y travaillent été comme hiver.');
+      else if (r0.kind === 'mine') addPoi(r0.x, r0.y, 14, 'Mine', 'Galerie souterraine', 'Galerie creusée dans la colline : fer, argent ou étain selon la rumeur. Gardée par les hommes du seigneur.');
+    });
     M.pois = pois;
 
     /* noms de rues (affichés si l'option est cochée) */
@@ -2235,6 +2268,8 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     if (harbor) rum.push('Un navire sans pavillon est amarré au quai depuis la dernière marée.');
     if (M.gibbet) rum.push('Le dernier pendu de la potence ne serait pas coupable, dit-on tout bas.');
     if (marshes.length) rum.push('Quelque chose rôde dans le marais, et les coupeurs de roseaux n’y vont plus seuls.');
+    if (M.rural.some(function (r0) { return r0.kind === 'ruin'; })) rum.push('On voit parfois de la lumière dans les ruines de la vieille tour, la nuit.');
+    if (M.rural.some(function (r0) { return r0.kind === 'mine'; })) rum.push('Un mineur est remonté de la galerie en jurant avoir entendu frapper plus profond que la roche.');
     rum.push('Le meunier truquerait ses poids, mais personne n’ose le dire au seigneur.');
     shuffle(rum, rsh);
     var rows = [
@@ -2295,8 +2330,15 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     automne: { land: ['#d9c58a', 0.25], field0: ['#c79a45', 0.5], field1: ['#b9893a', 0.45], field2: ['#d2b25a', 0.45], forest: ['#b5651d', 0.65], forest2: ['#e0a030', 0.6] },
     printemps: { land: ['#cfe3a0', 0.2], field0: ['#9fcc5a', 0.35], field1: ['#86bb55', 0.35], field2: ['#b8d86a', 0.35], forest: ['#6fae4e', 0.5], forest2: ['#f2c7d6', 0.6] }
   };
+  var SEASONS_DARK = {
+    hiver: { land: ['#aeb7bd', 0.35], landdark: ['#7d8a92', 0.3], field0: ['#9aa5ab', 0.35], field1: ['#8e9aa1', 0.35], field2: ['#95a0a6', 0.35], furrow: ['#6f7c84', 0.3], forest: ['#4d6a5b', 0.3], forest2: ['#cfd8dc', 0.5], water: ['#7f9fb0', 0.3], sand: ['#aab4b9', 0.3],
+      roof0: ['#cfd6da', 0.3], roof1: ['#cfd6da', 0.3], roof2: ['#cfd6da', 0.3], roof3: ['#cfd6da', 0.3], road: ['#c9c6bc', 0.15] },
+    automne: { land: ['#8a7440', 0.25], field0: ['#a07a35', 0.35], field1: ['#946d2c', 0.35], field2: ['#ad8a40', 0.35], forest: ['#9a5a1c', 0.5], forest2: ['#c78a24', 0.45] },
+    printemps: { land: ['#6f8f4a', 0.2], field0: ['#7fae48', 0.3], field1: ['#6ea03f', 0.3], field2: ['#8fbb52', 0.3], forest: ['#5a8f3e', 0.4], forest2: ['#d9a2b5', 0.4] }
+  };
   function seasonTokens(tk, season) {
-    var def = SEASONS[season];
+    var lr = hexRgb(tk.land), dark = lr && (lr[0] + lr[1] + lr[2]) / 3 < 110;
+    var def = (dark ? SEASONS_DARK : SEASONS)[season];
     if (!def) return tk;
     var o = {};
     for (var k in tk) o[k] = def[k] ? mixc(tk[k], def[k][0], def[k][1]) : tk[k];
@@ -2676,6 +2718,43 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
       ctx.restore();
     }
 
+    /* fermes, ruines, carrière, mine */
+    (M.rural || []).forEach(function (r0) {
+      ctx.save(); ctx.translate(r0.x, r0.y);
+      ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 1;
+      if (r0.kind === 'farm') {
+        ctx.rotate(r0.ang);
+        ctx.strokeStyle = tk.wood; ctx.lineWidth = 1.2; ctx.setLineDash([3, 2]); ctx.strokeRect(-26, -17, 52, 34); ctx.setLineDash([]);
+        ctx.strokeStyle = tk.houseedge; ctx.lineWidth = 1;
+        ctx.fillStyle = tk.roof1; ctx.fillRect(-20, -12, 16, 11); ctx.strokeRect(-20, -12, 16, 11);
+        ctx.beginPath(); ctx.moveTo(-20, -6.5); ctx.lineTo(-4, -6.5); ctx.stroke();
+        ctx.fillStyle = tk.wood; ctx.fillRect(2, -12, 20, 13); ctx.strokeRect(2, -12, 20, 13);
+        ctx.beginPath(); ctx.moveTo(2, -5.5); ctx.lineTo(22, -5.5); ctx.stroke();
+        ctx.fillStyle = tk.field2;
+        ctx.beginPath(); ctx.arc(-8, 9, 4.2, 0, TAU); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.arc(10, 10, 3.4, 0, TAU); ctx.fill(); ctx.stroke();
+      } else if (r0.kind === 'ruin') {
+        ctx.fillStyle = tk.stone; ctx.strokeStyle = tk.walledge; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(0, 0, 9, 0.6, 5.5); ctx.arc(0, 0, 4.5, 5.5, 0.6, true); ctx.closePath(); ctx.fill(); ctx.stroke();
+        [[10, 6, 2], [13, -3, 1.6], [-12, 5, 2.2], [-9, -9, 1.5], [4, 12, 1.8]].forEach(function (q) { ctx.beginPath(); ctx.arc(q[0], q[1], q[2], 0, TAU); ctx.fill(); ctx.stroke(); });
+      } else if (r0.kind === 'quarry') {
+        var qp = [];
+        for (var qi = 0; qi < 10; qi++) { var qa = qi / 10 * TAU, qr = 19 + ((qi * 37) % 7) * 1.6; qp.push([Math.cos(qa) * qr, Math.sin(qa) * qr * 0.8]); }
+        ctx.beginPath(); qp.forEach(function (q, i) { if (i) ctx.lineTo(q[0], q[1]); else ctx.moveTo(q[0], q[1]); }); ctx.closePath();
+        ctx.fillStyle = tk.landdark; ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = tk.walledge; ctx.stroke();
+        ctx.beginPath(); qp.forEach(function (q, i) { if (i) ctx.lineTo(q[0] * 0.6, q[1] * 0.6); else ctx.moveTo(q[0] * 0.6, q[1] * 0.6); }); ctx.closePath();
+        ctx.fillStyle = tk.stone; ctx.fill(); ctx.stroke();
+        [[-6, 2], [8, -5], [2, 8]].forEach(function (q) { ctx.fillRect(q[0], q[1], 5, 4); ctx.strokeRect(q[0], q[1], 5, 4); });
+      } else if (r0.kind === 'mine') {
+        ctx.rotate(r0.ang);
+        ctx.fillStyle = tk.landdark;
+        [[10, 5, 5], [14, -3, 4], [8, -8, 3.5]].forEach(function (q) { ctx.beginPath(); ctx.arc(q[0], q[1], q[2], 0, TAU); ctx.fill(); ctx.stroke(); });
+        ctx.fillStyle = tk.ink; ctx.fillRect(-2, -5, 6, 10);
+        ctx.strokeStyle = tk.wood; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-3, -6); ctx.lineTo(5, -6); ctx.moveTo(-2, -5); ctx.lineTo(-2, 5); ctx.moveTo(4, -5); ctx.lineTo(4, 5); ctx.stroke();
+      }
+      ctx.restore();
+    });
+
     /* cimetières */
     M.yards.forEach(function (y1) {
       ctx.save(); ctx.translate(y1.x, y1.y); ctx.rotate(y1.ang);
@@ -2795,6 +2874,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     if (M.bailli) label('Bailli', M.bailli.x, M.bailli.y - M.bailli.S * 0.5 - 10, 12, tk);
     label('Marché', M.marketLabel.x, M.marketLabel.y, 12, tk);
     M.hamlets.forEach(function (hm) { label(hm.name, hm.x, hm.ly, 11, tk); });
+    (M.rural || []).forEach(function (r0) { label(r0.name, r0.x, r0.y + (r0.kind === 'farm' ? 28 : r0.kind === 'mine' ? 16 : r0.kind === 'quarry' ? 30 : 21), 10, tk); });
     if (M.abbey) label('Abbaye', M.abbey.x, M.abbey.y + M.abbey.h / 2 + 14, 11, tk);
     if (M.lepro) label('Léproserie', M.lepro.x, M.lepro.y + 30, 11, tk);
     if (M.gibbet) label('Potence', M.gibbet.x, M.gibbet.y + 16, 10, tk);
@@ -2840,6 +2920,17 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         label(txt, r0.x, r0.y, 13, tk, { color: tk.waterink, halo: tk.water, rot: ra, font: 'italic 500 13px ' + BODY });
       }
     }
+
+    /* notes (épingles) */
+    (M.notes || []).forEach(function (n, i) {
+      ctx.save(); ctx.translate(n.x, n.y);
+      ctx.fillStyle = '#b3261e'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(-5, -9); ctx.lineTo(0, 0); ctx.lineTo(5, -9); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, -13, 7.5, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ffffff'; ctx.font = '700 10px ' + BODY; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(i + 1), 0, -13);
+      ctx.restore();
+    });
 
     /* cartouche */
     ctx.font = '40px ' + DISPLAY;
@@ -2947,6 +3038,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
   function render() {
     model = generate(state.seed, state.size, state.river, state.walls, state.layout, state.coast, state.hills, state.ham, state.terr);
     model.showNames = state.names; model.showSiege = state.siege; model.season = state.season;
+    applyNotes();
     hidePoi();
     draw(model, readTokens());
     syncUI();
@@ -2970,7 +3062,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
   $('opt-names').addEventListener('change', function (e) { state.names = e.target.checked; model.showNames = state.names; draw(model, readTokens()); syncUI(); });
   /* fiche d'un lieu au clic ou au toucher */
   var poiBox = $('poi'), downAt = null;
-  function hidePoi() { poiBox.hidden = true; }
+  function hidePoi() { poiBox.hidden = true; var nb = $('note'); if (nb) nb.hidden = true; }
   poiBox.querySelector('.x').addEventListener('click', hidePoi);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hidePoi(); });
   canvas.addEventListener('pointerdown', function (e) { downAt = { x: e.clientX, y: e.clientY }; });
@@ -2979,6 +3071,9 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 6) return;
     var rc = canvas.getBoundingClientRect(), k = W / rc.width;
     var mx = (e.clientX - rc.left) * k, my = (e.clientY - rc.top) * k, tol = 10 * k, best = null, bs = 1e9;
+    var nl = model.notes || [];
+    for (var ni = 0; ni < nl.length; ni++) if (Math.min(Math.hypot(nl[ni].x - mx, nl[ni].y - 13 - my), Math.hypot(nl[ni].x - mx, nl[ni].y - my)) < 9 * k + 2) { openNote(nl[ni], ni, e); return; }
+    if (pinMode) { addNoteAt(mx, my, e); return; }
     model.pois.forEach(function (o) { if (o.c === 'siege' && !state.siege) return; var d = Math.hypot(o.x - mx, o.y - my) - o.r; if (d < tol && d < bs) { bs = d; best = o; } });
     if (!best) { hidePoi(); return; }
     poiBox.querySelector('.pt').textContent = best.t; poiBox.querySelector('.ps').textContent = best.s; poiBox.querySelector('.pd').textContent = best.d;
@@ -2987,6 +3082,43 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     px = Math.max(8, Math.min(px, sr.width - poiBox.offsetWidth - 8)); py = Math.max(8, Math.min(py, sr.height - poiBox.offsetHeight - 8));
     poiBox.style.left = px + 'px'; poiBox.style.top = py + 'px';
   });
+  /* notes : épingles posées sur la carte, gardées sur cet appareil */
+  var notes = {}, pinMode = false, curNote = null, noteBox = $('note');
+  function noteKey() { return state.size + '-' + state.seed; }
+  function loadNotes() { try { notes = JSON.parse(localStorage.getItem('atlas-notes') || '{}') || {}; } catch (e) { } }
+  function saveNotes() { try { localStorage.setItem('atlas-notes', JSON.stringify(notes)); } catch (e) { } }
+  function applyNotes() { if (!notes[noteKey()]) notes[noteKey()] = []; model.notes = notes[noteKey()]; }
+  function setPin(on) {
+    pinMode = on; $('btn-pin').setAttribute('aria-pressed', on ? 'true' : 'false');
+    $('btn-pin').textContent = on ? '📍 Touchez la carte pour poser la note' : '📍 Poser une note';
+    canvas.style.cursor = on ? 'crosshair' : '';
+  }
+  function placeBox(box, e) {
+    var sr = box.parentNode.getBoundingClientRect(), px = e.clientX - sr.left + 12, py = e.clientY - sr.top + 12;
+    px = Math.max(8, Math.min(px, sr.width - box.offsetWidth - 8)); py = Math.max(8, Math.min(py, sr.height - box.offsetHeight - 8));
+    box.style.left = px + 'px'; box.style.top = py + 'px';
+  }
+  function openNote(n, idx, e) {
+    curNote = n; poiBox.hidden = true;
+    $('note-h').textContent = 'Note ' + (idx + 1); $('note-t').value = n.t || '';
+    noteBox.hidden = false; placeBox(noteBox, e);
+    try { $('note-t').focus(); } catch (x) { }
+  }
+  function addNoteAt(x, y, e) {
+    setPin(false);
+    var list = model.notes; list.push({ x: x, y: y, t: '' }); saveNotes();
+    draw(model, readTokens()); openNote(list[list.length - 1], list.length - 1, e);
+  }
+  $('btn-pin').addEventListener('click', function () { hidePoi(); setPin(!pinMode); });
+  $('note-t').addEventListener('input', function (e) { if (curNote) { curNote.t = e.target.value; saveNotes(); } });
+  $('note-del').addEventListener('click', function () {
+    var list = model.notes, i = list.indexOf(curNote);
+    if (i >= 0) list.splice(i, 1);
+    curNote = null; saveNotes(); noteBox.hidden = true; draw(model, readTokens());
+  });
+  noteBox.querySelector('.x').addEventListener('click', function () { noteBox.hidden = true; });
+  loadNotes();
+
   /* à propos */
   var dlg = $('about');
   $('btn-help').addEventListener('click', function () { if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', ''); });
@@ -3175,10 +3307,15 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     };
     return r;
   }
+  function asLight(fn) {
+    var el = document.documentElement, had = el.hasAttribute('data-theme'), prev = el.getAttribute('data-theme');
+    el.setAttribute('data-theme', 'light');
+    try { return fn(); } finally { if (had) el.setAttribute('data-theme', prev); else el.removeAttribute('data-theme'); }
+  }
   function svgBlob() {
     var rec = makeRecorder(), keep = ctx, oldDpr = dpr;
     ctx = rec; dpr = 1;
-    try { draw(model, readTokens()); } finally { ctx = keep; dpr = oldDpr; }
+    try { asLight(function () { draw(model, readTokens()); }); } finally { ctx = keep; dpr = oldDpr; }
     return new Blob([rec.toSVG($('exp-style').value === 'parch')], { type: 'image/svg+xml' });
   }
   /* parchemin (PNG) : teinte sépia, taches et bords brunis */
@@ -3207,10 +3344,12 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
   function pngBlob(cb) {
     var old = dpr, SC = 3, withL = $('opt-legend').checked, parch = $('exp-style').value === 'parch';
     dpr = SC; canvas.width = W * SC; canvas.height = H * SC;
-    draw(model, readTokens());
-    var src = parch ? parchment(canvas, SC) : canvas;
-    if (withL) withLegend(src, SC).toBlob(function (blob) { cb(blob); }, 'image/png');
-    else src.toBlob(function (blob) { cb(blob); }, 'image/png');
+    asLight(function () {
+      draw(model, readTokens());
+      var src = parch ? parchment(canvas, SC) : canvas;
+      if (withL) withLegend(src, SC).toBlob(function (blob) { cb(blob); }, 'image/png');
+      else src.toBlob(function (blob) { cb(blob); }, 'image/png');
+    });
     dpr = old; canvas.width = W * old; canvas.height = H * old;
     draw(model, readTokens());
   }
