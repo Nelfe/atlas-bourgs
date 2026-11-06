@@ -307,6 +307,8 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         <label class="chip"><input type="checkbox" id="opt-siege"><span>Siège</span></label>
         <select id="opt-season" class="sel" aria-label="Saison"><option value="ete">Été</option><option value="printemps">Printemps</option><option value="automne">Automne</option><option value="hiver">Hiver</option></select>
         <label class="chip"><input type="checkbox" id="opt-names"><span>Noms de rues</span></label>
+        <label class="chip"><input type="checkbox" id="opt-dist"><span>Quartiers</span></label>
+        <label class="chip"><input type="checkbox" id="opt-perch"><span>Ville perchée</span></label>
       </div>
     </fieldset>
     <div class="field">
@@ -408,7 +410,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
       </div>
     </aside>
   </div>
-  <footer class="foot">© <span id="cr-year">2026</span> Guillaume Dumas · Atlas des Bourgs. Tous droits réservés. · <span class="ver">v14 · 05/11/2026</span></footer>
+  <footer class="foot">© <span id="cr-year">2026</span> Guillaume Dumas · Atlas des Bourgs. Tous droits réservés. · <span class="ver">v15 · 06/11/2026</span></footer>
 </div>
 
 <dialog id="sheet-dlg" aria-labelledby="sheet-title">
@@ -420,7 +422,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
 <dialog id="about" aria-labelledby="about-title">
   <h2 id="about-title">À propos</h2>
   <div id="about-body"></div>
-  <p class="about-ver">Atlas des Bourgs, version <span class="ver">v14 · 05/11/2026</span></p>
+  <p class="about-ver">Atlas des Bourgs, version <span class="ver">v15 · 06/11/2026</span></p>
   <div class="dlg-actions"><button type="button" id="about-close" class="primary">Fermer</button></div>
 </dialog>
 
@@ -430,7 +432,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
   var W = 1200, H = 800, TAU = Math.PI * 2;
   var canvas = document.getElementById('map');
   var ctx = canvas.getContext('2d');
-  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var dprBase = Math.min(window.devicePixelRatio || 1, 2), dpr = dprBase, zoomDetail = false;
   canvas.width = W * dpr; canvas.height = H * dpr;
 
   var DISPLAY = '"Pirata One", "UnifrakturCook", Georgia, serif';
@@ -558,7 +560,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
   }
 
   /* ---------- génération ---------- */
-  function generate(seed, sizeKey, useRiver, useWalls, layoutKey, useCoast, useHills, useHam, useTerr) {
+  function generate(seed, sizeKey, useRiver, useWalls, layoutKey, useCoast, useHills, useHam, useTerr, usePerch) {
     var cfg = SIZES[sizeKey];
     function sub(k) { return mulberry32(hashSeed(seed + '|' + sizeKey + '|' + k)()); }
     var M = { seed: seed, sizeKey: sizeKey, useRiver: useRiver, useWalls: useWalls, cfg: cfg };
@@ -1784,8 +1786,14 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     function inCorner(x, y, mx, my) {
       return (x - mx < 200 && y - my < 80) || (x - mx < 200 && y + my > H - 56) || (x + mx > W - 110 && y + my > H - 120);
     }
-    var marshes = [], blocks = [];
+    var marshes = [], blocks = [], perch = null;
+    if (usePerch) {
+      var z_pr = Rmax * 1.08 + 26;
+      perch = { x: C.x, y: C.y, rx: z_pr, ry: Math.min(z_pr * 0.9, Math.min(C.y, H - C.y) - 8) };
+    }
+    M.perch = perch;
     function inHill(x, y, m) {
+      if (perch) { var pex = (x - perch.x) / (perch.rx + m), pey = (y - perch.y) / (perch.ry + m); if (pex * pex + pey * pey < 1) return true; }
       for (var q = 0; q < hills.length; q++) {
         var hl = hills[q], ex = (x - hl.x) / (hl.rx + m), ey = (y - hl.y) / (hl.ry + m);
         if (ex * ex + ey * ey < 1) return true;
@@ -1806,6 +1814,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
           if (inCorner(hlx, hly, hrx, hry)) continue;
           if (hlx - hrx < 8 || hlx + hrx > W - 8 || hly - hry < 8 || hly + hry > H - 8) continue;
           if (nd(hlx, hly) < 1.45 + hrx / R) continue;
+          if (perch && Math.hypot(hlx - perch.x, hly - perch.y) < perch.rx + hrx + 8) continue;
           if (wet && riverDist(hlx, hly) < rw / 2 + hrx + 6) continue;
           var nsH = nearestSeg(segs, hlx, hly);
           if (nsH.d < hrx + nsH.seg.w / 2 + 6) continue;
@@ -2040,7 +2049,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
       var fx = rf2() * W, fy = rf2() * H;
       var fw = 34 + rf2() * 46, fh = 24 + rf2() * 26;
       if (nd(fx, fy) < 1.4) continue;
-      if ((hills.length || marshes.length) && inHill(fx, fy, Math.hypot(fw, fh) / 2 + 8)) continue;
+      if ((hills.length || marshes.length || perch) && inHill(fx, fy, Math.hypot(fw, fh) / 2 + 8)) continue;
       if (blocks.some(function (b0) { return Math.hypot(b0.x - fx, b0.y - fy) < b0.r + Math.hypot(fw, fh) / 2; })) continue;
       if (psegs.length && nearestSeg(psegs, fx, fy).d < Math.hypot(fw, fh) / 2 + 3) continue;
       var dn = Math.hypot(fx - C.x, fy - C.y) / R;
@@ -2095,7 +2104,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
         var tn = nearestSeg(segs, gx, gy);
         if (tn.d < tn.seg.w / 2 + 6) continue;
         if (hHit(gx, gy, 6)) continue;
-        if ((hills.length || marshes.length) && inHill(gx, gy, 4)) continue;
+        if ((hills.length || marshes.length || perch) && inHill(gx, gy, 4)) continue;
         if (blocks.some(function (b0) { return Math.hypot(b0.x - gx, b0.y - gy) < b0.r + 3; })) continue;
         if (psegs.length && nearestSeg(psegs, gx, gy).d < 7) continue;
         if (yards.some(function (y1) { return Math.hypot(y1.x - gx, y1.y - gy) < Math.hypot(y1.w, y1.h) / 2 + 8; })) continue;
@@ -2272,6 +2281,33 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     if (M.rural.some(function (r0) { return r0.kind === 'mine'; })) rum.push('Un mineur est remonté de la galerie en jurant avoir entendu frapper plus profond que la roche.');
     rum.push('Le meunier truquerait ses poids, mais personne n’ose le dire au seigneur.');
     shuffle(rum, rsh);
+    /* quartiers (calcul indépendant, flux propre) */
+    M.districts = (function () {
+      var rd = sub('districts'), pts = houses.filter(function (h0) { return !h0.ham && h0.kind !== 'lepro'; });
+      var k = sizeKey === 'bourg' ? 3 : sizeKey === 'ville' ? 4 : 5;
+      if (pts.length < k * 8) return [];
+      var off = rd() * TAU, cs0 = [];
+      for (var a0 = 0; a0 < k; a0++) { var aa = off + a0 * TAU / k, rr0 = Rmax * (a0 % 2 ? 0.7 : 0.45); cs0.push({ x: C.x + Math.cos(aa) * rr0, y: C.y + Math.sin(aa) * rr0, n: 0, sx: 0, sy: 0, h: [] }); }
+      for (var it = 0; it < 6; it++) {
+        cs0.forEach(function (c) { c.n = 0; c.sx = 0; c.sy = 0; c.h = []; });
+        pts.forEach(function (p) { var b = 0, bd = 1e9; cs0.forEach(function (c, ci) { var d = Math.hypot(p.x - c.x, p.y - c.y); if (d < bd) { bd = d; b = ci; } }); var c = cs0[b]; c.n++; c.sx += p.x; c.sy += p.y; c.h.push(p); });
+        cs0.forEach(function (c) { if (c.n) { c.x = c.sx / c.n; c.y = c.sy / c.n; } });
+      }
+      var out = cs0.filter(function (c) { return c.n >= 6; });
+      var far = null, fd = 0; out.forEach(function (c) { var d = Math.hypot(c.x - C.x, c.y - C.y); if (d > fd) { fd = d; far = c; } });
+      var pool = ['Quartier des Tanneurs', 'Quartier des Tisserands', 'Bourg-Neuf', 'Quartier des Forgerons', 'La Juiverie', 'Quartier des Meuniers', 'Quartier du Guet', 'Quartier des Bouchers', 'Quartier des Potiers', 'Le Vieux-Bourg'];
+      shuffle(pool, rd);
+      var usedHalle = false, usedRiv = false;
+      return out.map(function (c) {
+        var rms = Math.sqrt(c.h.reduce(function (t, p) { return t + (p.x - c.x) * (p.x - c.x) + (p.y - c.y) * (p.y - c.y); }, 0) / c.n);
+        var name;
+        if (!usedHalle && c.h.some(function (p) { return p.kind === 'halle'; })) { name = 'Les Halles'; usedHalle = true; }
+        else if (c === far && out.length > 3) name = 'Faubourg ' + SAINTS[(Math.floor(rd() * 6) + 1) % SAINTS.length].replace(/^Saint-|^Sainte-/, 'Saint-');
+        else if (!usedRiv && wet && c.h.some(function (p) { return riverDist(p.x, p.y) < rw * 2.2; })) { name = 'Quartier des Teinturiers'; usedRiv = true; }
+        else name = pool.shift();
+        return { x: c.x, y: c.y, r: Math.max(55, Math.min(150, rms * 1.55)), name: name };
+      });
+    })();
     var rows = [
       ['Habitants', '≈ ' + M.pop.toLocaleString('fr-FR') + ' (' + nTown + ' maisons)'],
       ['Gouvernement', ctype === 'chateau' ? 'Seigneur ' + lordFam + ', assisté ' + (bailli ? 'd’un bailli' : 'de ses hommes d’armes') : ctype === 'manoir' ? 'Petit seigneur ' + lordFam + ' et conseil des notables' : 'Bailli et conseil des notables'],
@@ -2357,6 +2393,23 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     M.specks.forEach(function (s) { ctx.moveTo(s.x, s.y); ctx.lineTo(s.x + s.l, s.y - s.l * 0.6); ctx.moveTo(s.x + 1.5, s.y); ctx.lineTo(s.x + 1.5 + s.l * 0.6, s.y - s.l); });
     ctx.stroke(); ctx.globalAlpha = 1;
 
+    /* plateau de la ville perchée */
+    if (M.perch) {
+      var pc = M.perch;
+      ctx.save(); ctx.translate(pc.x, pc.y);
+      ctx.beginPath(); ctx.ellipse(0, 0, pc.rx, pc.ry, 0, 0, TAU);
+      ctx.fillStyle = tk.landdark; ctx.globalAlpha = 0.32; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = tk.ink; ctx.lineWidth = 1.3; ctx.globalAlpha = 0.55; ctx.stroke();
+      ctx.globalAlpha = 0.22; [0.9, 0.8].forEach(function (k) { ctx.beginPath(); ctx.ellipse(0, 0, pc.rx * k, pc.ry * k, 0, 0, TAU); ctx.stroke(); });
+      ctx.globalAlpha = 0.5; ctx.beginPath();
+      var npc = Math.round(pc.rx / 3.4);
+      for (var pa = 0; pa < npc; pa++) {
+        var pan = pa / npc * TAU, ln = 7 + 5 * ((pa * 5) % 3) / 2;
+        ctx.moveTo(Math.cos(pan) * pc.rx, Math.sin(pan) * pc.ry);
+        ctx.lineTo(Math.cos(pan) * (pc.rx - ln), Math.sin(pan) * (pc.ry - ln * pc.ry / pc.rx));
+      }
+      ctx.stroke(); ctx.globalAlpha = 1; ctx.restore();
+    }
     /* collines */
     M.hills.forEach(function (h) {
       ctx.save(); ctx.translate(h.x, h.y);
@@ -2878,6 +2931,15 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     if (M.abbey) label('Abbaye', M.abbey.x, M.abbey.y + M.abbey.h / 2 + 14, 11, tk);
     if (M.lepro) label('Léproserie', M.lepro.x, M.lepro.y + 30, 11, tk);
     if (M.gibbet) label('Potence', M.gibbet.x, M.gibbet.y + 16, 10, tk);
+    if (M.showDist && M.districts) {
+      var dcol = [tk.roof0, tk.roof1, tk.roof2, tk.roof3, tk.wall];
+      M.districts.forEach(function (d, di) {
+        ctx.fillStyle = dcol[di % dcol.length] || tk.landdark;
+        for (var rg = 0; rg < 6; rg++) { ctx.globalAlpha = 0.035; ctx.beginPath(); ctx.arc(d.x, d.y, d.r * (1 - rg * 0.14), 0, TAU); ctx.fill(); }
+        ctx.globalAlpha = 0.62; label(d.name.toUpperCase(), d.x, d.y, 13, tk, { font: 'italic 600 13px ' + BODY, halo: tk.land }); ctx.globalAlpha = 1;
+      });
+    }
+    if (zoomDetail) (M.pois || []).forEach(function (p) { if (p.r <= 12 && p.t) label(p.t, p.x, p.y + p.r + 7, 9, tk); });
     if (M.showNames) M.streetNames.forEach(function (sn) { label(sn.t, sn.x, sn.y, 11, tk, { rot: sn.ang, font: 'italic 500 11px ' + BODY }); });
     if (M.harbor) {
       var Hh = M.harbor, SPt = M.seaPt;
@@ -2981,7 +3043,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
 
   /* ---------- interface ---------- */
   var $ = function (id) { return document.getElementById(id); };
-  var state = { seed: 'k7f3q2', size: 'ville', river: true, walls: true, coast: false, hills: false, ham: false, terr: false, siege: false, season: 'ete', names: false, layout: 'auto' };
+  var state = { seed: 'k7f3q2', size: 'ville', river: true, walls: true, coast: false, hills: false, ham: false, terr: false, siege: false, season: 'ete', names: false, dist: false, perch: false, layout: 'auto' };
   var LCHAR = { auto: '', radial: 'c', organic: 'o', bastide: 'b', linear: 'l' };
   var model = null, lastHash = '';
 
@@ -2991,11 +3053,11 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     return s;
   }
   function cleanSeed(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 24); }
-  function hashOf() { return state.size + '-' + (state.river ? 'r' : 'x') + (state.walls ? 'm' : 'x') + LCHAR[state.layout] + (state.coast ? 'k' : '') + (state.hills ? 'h' : '') + (state.ham ? 'v' : '') + (state.terr ? 't' : '') + (state.siege ? 's' : '') + ({ hiver: 'w', automne: 'a', printemps: 'e' }[state.season] || '') + (state.names ? 'n' : '') + '-' + state.seed; }
+  function hashOf() { return state.size + '-' + (state.river ? 'r' : 'x') + (state.walls ? 'm' : 'x') + LCHAR[state.layout] + (state.coast ? 'k' : '') + (state.hills ? 'h' : '') + (state.ham ? 'v' : '') + (state.terr ? 't' : '') + (state.siege ? 's' : '') + ({ hiver: 'w', automne: 'a', printemps: 'e' }[state.season] || '') + (state.names ? 'n' : '') + (state.dist ? 'q' : '') + (state.perch ? 'p' : '') + '-' + state.seed; }
   function parseHash() {
-    var m = /^#(bourg|ville|cite)-([rx])([mx])([cobl]?)([khvtnswae]*)-([a-z0-9]{1,24})$/.exec(location.hash || '');
+    var m = /^#(bourg|ville|cite)-([rx])([mx])([cobl]?)([khvtnswaeqp]*)-([a-z0-9]{1,24})$/.exec(location.hash || '');
     if (!m) return false;
-    state.size = m[1]; state.river = m[2] === 'r'; state.walls = m[3] === 'm'; state.coast = m[5].indexOf('k') >= 0; state.hills = m[5].indexOf('h') >= 0; state.ham = m[5].indexOf('v') >= 0; state.names = m[5].indexOf('n') >= 0; state.terr = m[5].indexOf('t') >= 0; state.siege = m[5].indexOf('s') >= 0; state.season = m[5].indexOf('w') >= 0 ? 'hiver' : m[5].indexOf('a') >= 0 ? 'automne' : m[5].indexOf('e') >= 0 ? 'printemps' : 'ete'; state.seed = m[6];
+    state.size = m[1]; state.river = m[2] === 'r'; state.walls = m[3] === 'm'; state.coast = m[5].indexOf('k') >= 0; state.hills = m[5].indexOf('h') >= 0; state.ham = m[5].indexOf('v') >= 0; state.names = m[5].indexOf('n') >= 0; state.dist = m[5].indexOf('q') >= 0; state.perch = m[5].indexOf('p') >= 0; state.terr = m[5].indexOf('t') >= 0; state.siege = m[5].indexOf('s') >= 0; state.season = m[5].indexOf('w') >= 0 ? 'hiver' : m[5].indexOf('a') >= 0 ? 'automne' : m[5].indexOf('e') >= 0 ? 'printemps' : 'ete'; state.seed = m[6];
     state.layout = 'auto';
     for (var key in LCHAR) { if (LCHAR[key] && LCHAR[key] === m[4]) state.layout = key; }
     return true;
@@ -3012,6 +3074,8 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     $('opt-hills').checked = state.hills;
     $('opt-ham').checked = state.ham;
     $('opt-names').checked = state.names;
+    $('opt-dist').checked = state.dist;
+    $('opt-perch').checked = state.perch;
     $('opt-terr').checked = state.terr;
     $('opt-siege').checked = state.siege;
     $('opt-season').value = state.season;
@@ -3035,14 +3099,25 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     $('linkbox').hidden = true;
   }
 
+  function sheetDist() {
+    if (!model || !model.sheet) return;
+    model.sheet.rows = model.sheet.rows.filter(function (r) { return r[0] !== 'Quartiers'; });
+    if (state.dist && model.districts && model.districts.length) model.sheet.rows.splice(Math.max(0, model.sheet.rows.length - 1), 0, ['Quartiers', model.districts.map(function (d) { return d.name; }).join(', ')]);
+  }
   function render() {
-    model = generate(state.seed, state.size, state.river, state.walls, state.layout, state.coast, state.hills, state.ham, state.terr);
-    model.showNames = state.names; model.showSiege = state.siege; model.season = state.season;
+    model = generate(state.seed, state.size, state.river, state.walls, state.layout, state.coast, state.hills, state.ham, state.terr, state.perch);
+    model.showNames = state.names; model.showDist = state.dist; sheetDist(); model.showSiege = state.siege; model.season = state.season;
     applyNotes();
     hidePoi();
     draw(model, readTokens());
     syncUI();
   }
+  canvas.addEventListener('atlas-zoom', function (e) {
+    var z = e.detail.sc, nd2 = z > 1.3 ? Math.min(4, Math.max(dprBase, dprBase * z / 1.5)) : dprBase, det = z >= 1.8;
+    if (nd2 === dpr && det === zoomDetail) return;
+    dpr = nd2; zoomDetail = det; canvas.width = W * dpr; canvas.height = H * dpr;
+    if (model) draw(model, readTokens());
+  });
   function redraw() { if (model) draw(model, readTokens()); }
 
   document.querySelectorAll('input[name="size"]').forEach(function (el) {
@@ -3059,6 +3134,8 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
   $('opt-siege').addEventListener('change', function (e) { state.siege = e.target.checked; model.showSiege = state.siege; hidePoi(); draw(model, readTokens()); syncUI(); });
   $('opt-season').addEventListener('change', function (e) { state.season = e.target.value; model.season = state.season; draw(model, readTokens()); syncUI(); });
   $('opt-terr').addEventListener('change', function (e) { state.terr = e.target.checked; render(); });
+  $('opt-dist').addEventListener('change', function (e) { state.dist = e.target.checked; model.showDist = state.dist; sheetDist(); draw(model, readTokens()); syncUI(); });
+  $('opt-perch').addEventListener('change', function (e) { state.perch = e.target.checked; render(); });
   $('opt-names').addEventListener('change', function (e) { state.names = e.target.checked; model.showNames = state.names; draw(model, readTokens()); syncUI(); });
   /* fiche d'un lieu au clic ou au toucher */
   var poiBox = $('poi'), downAt = null;
@@ -3313,9 +3390,9 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     try { return fn(); } finally { if (had) el.setAttribute('data-theme', prev); else el.removeAttribute('data-theme'); }
   }
   function svgBlob() {
-    var rec = makeRecorder(), keep = ctx, oldDpr = dpr;
-    ctx = rec; dpr = 1;
-    try { asLight(function () { draw(model, readTokens()); }); } finally { ctx = keep; dpr = oldDpr; }
+    var rec = makeRecorder(), keep = ctx, oldDpr = dpr, oldZD = zoomDetail;
+    ctx = rec; dpr = 1; zoomDetail = false;
+    try { asLight(function () { draw(model, readTokens()); }); } finally { ctx = keep; dpr = oldDpr; zoomDetail = oldZD; }
     return new Blob([rec.toSVG($('exp-style').value === 'parch')], { type: 'image/svg+xml' });
   }
   /* parchemin (PNG) : teinte sépia, taches et bords brunis */
@@ -3342,15 +3419,15 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     return oc;
   }
   function pngBlob(cb) {
-    var old = dpr, SC = 3, withL = $('opt-legend').checked, parch = $('exp-style').value === 'parch';
-    dpr = SC; canvas.width = W * SC; canvas.height = H * SC;
+    var old = dpr, oldZD = zoomDetail, SC = 3, withL = $('opt-legend').checked, parch = $('exp-style').value === 'parch';
+    dpr = SC; zoomDetail = false; canvas.width = W * SC; canvas.height = H * SC;
     asLight(function () {
       draw(model, readTokens());
       var src = parch ? parchment(canvas, SC) : canvas;
       if (withL) withLegend(src, SC).toBlob(function (blob) { cb(blob); }, 'image/png');
       else src.toBlob(function (blob) { cb(blob); }, 'image/png');
     });
-    dpr = old; canvas.width = W * old; canvas.height = H * old;
+    dpr = old; zoomDetail = oldZD; canvas.width = W * old; canvas.height = H * old;
     draw(model, readTokens());
   }
   function pngName(ext) { return 'atlas-' + slug(model.name) + '-' + state.size + '-' + state.seed + ($('exp-style').value === 'parch' ? '-parchemin' : '') + '.' + (ext || 'png'); }
@@ -3420,7 +3497,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
 (function () {
   'use strict';
   var cv = document.getElementById('map'), stage = cv.parentNode;
-  var sc = 1, tx = 0, ty = 0, MAXZ = 5;
+  var sc = 1, tx = 0, ty = 0, MAXZ = 5, zt = 0, zlast = 1;
   var ptrs = {}, last = null;
   var bReset = document.getElementById('zoom-reset');
   function clamp() {
@@ -3433,6 +3510,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     cv.style.transform = sc === 1 ? '' : 'translate(' + tx + 'px,' + ty + 'px) scale(' + sc + ')';
     cv.style.touchAction = sc > 1 ? 'none' : 'pan-y';
     bReset.hidden = sc === 1;
+    clearTimeout(zt); zt = setTimeout(function () { if (sc !== zlast) { zlast = sc; cv.dispatchEvent(new CustomEvent('atlas-zoom', { detail: { sc: sc } })); } }, 180);
   }
   function zoomAt(cx, cy, ns) {
     ns = Math.min(MAXZ, Math.max(1, ns));
