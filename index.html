@@ -410,7 +410,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
       </div>
     </aside>
   </div>
-  <footer class="foot">© <span id="cr-year">2026</span> Guillaume Dumas · Atlas des Bourgs. Tous droits réservés. · <span class="ver">v15 · 06/11/2026</span></footer>
+  <footer class="foot">© <span id="cr-year">2026</span> Guillaume Dumas · Atlas des Bourgs. Tous droits réservés. · <span class="ver">v16 · 06/11/2026</span></footer>
 </div>
 
 <dialog id="sheet-dlg" aria-labelledby="sheet-title">
@@ -422,7 +422,7 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
 <dialog id="about" aria-labelledby="about-title">
   <h2 id="about-title">À propos</h2>
   <div id="about-body"></div>
-  <p class="about-ver">Atlas des Bourgs, version <span class="ver">v15 · 06/11/2026</span></p>
+  <p class="about-ver">Atlas des Bourgs, version <span class="ver">v16 · 06/11/2026</span></p>
   <div class="dlg-actions"><button type="button" id="about-close" class="primary">Fermer</button></div>
 </dialog>
 
@@ -561,6 +561,34 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
 
   /* ---------- génération ---------- */
   function generate(seed, sizeKey, useRiver, useWalls, layoutKey, useCoast, useHills, useHam, useTerr, usePerch) {
+    var best = null, bsc = -1;
+    for (var salt = 0; salt < 8; salt++) {
+      var M0 = generate0(seed, sizeKey, useRiver, useWalls, layoutKey, useCoast, useHills, useHam, useTerr, usePerch, salt), sc0 = riverBalance(M0);
+      if (sc0 >= 1) return M0;
+      if (sc0 > bsc) { bsc = sc0; best = M0; }
+    }
+    return best;
+  }
+  /* 1 = ville répartie sur les deux rives avec au moins un pont (ou pas de rivière) ; sinon note partielle */
+  function riverBalance(M) {
+    var r = M.river;
+    if (!r || !M.useRiver || M.sea) return 1;
+    var a = 0, b = 0;
+    M.houses.forEach(function (h) {
+      if (h.ham) return;
+      var bd = 1e9, bi = 0;
+      for (var i = 0; i < r.length - 1; i++) {
+        var dx = r[i + 1].x - r[i].x, dy = r[i + 1].y - r[i].y, t = Math.max(0, Math.min(1, ((h.x - r[i].x) * dx + (h.y - r[i].y) * dy) / (dx * dx + dy * dy)));
+        var d = Math.hypot(h.x - r[i].x - dx * t, h.y - r[i].y - dy * t);
+        if (d < bd) { bd = d; bi = i; }
+      }
+      if ((r[bi + 1].x - r[bi].x) * (h.y - r[bi].y) - (r[bi + 1].y - r[bi].y) * (h.x - r[bi].x) > 0) a++; else b++;
+    });
+    var tot = a + b; if (!tot) return 0;
+    var mn = Math.min(a, b) / tot;
+    return M.bridges.length && mn >= 0.15 ? 1 : Math.min(mn / 0.15, 0.9) * (M.bridges.length ? 1 : 0.8);
+  }
+  function generate0(seed, sizeKey, useRiver, useWalls, layoutKey, useCoast, useHills, useHam, useTerr, usePerch, salt) {
     var cfg = SIZES[sizeKey];
     function sub(k) { return mulberry32(hashSeed(seed + '|' + sizeKey + '|' + k)()); }
     var M = { seed: seed, sizeKey: sizeKey, useRiver: useRiver, useWalls: useWalls, cfg: cfg };
@@ -628,11 +656,11 @@ dd { font: 500 15px var(--font-mono); font-variant-numeric: tabular-nums; text-a
     /* rivière */
     var river = null, rw = 0;
     if (useRiver) {
-      var rr = sub('river');
-      var th = layout === 'linear' ? theta + (rr() - 0.5) * 0.14 : rr() * Math.PI;
+      var rr = sub(salt ? 'river' + salt : 'river');
+      var th = layout === 'linear' ? theta + Math.PI / 2 + (rr() - 0.5) * 0.7 : rr() * Math.PI;
       if (useCoast) th = ca + (rr() - 0.5) * 0.9;
       var dir = { x: Math.cos(th), y: Math.sin(th) }, nor = { x: -dir.y, y: dir.x };
-      var off = (rr() < 0.5 ? -1 : 1) * (layout === 'linear' ? (0.4 + 0.2 * rr()) * hy : (0.2 + 0.35 * rr()) * R);
+      var off = layout === 'linear' ? (rr() - 0.5) * 0.7 * hx : (rr() < 0.5 ? -1 : 1) * (0.03 + 0.2 * rr()) * R;
       var A = 22 + rr() * 30, f1 = 0.004 + rr() * 0.003, f2 = 0.011 + rr() * 0.005, q1 = rr() * TAU, q2 = rr() * TAU;
       rw = (14 + rr() * 8) * (0.85 + R / 300);
       river = [];
